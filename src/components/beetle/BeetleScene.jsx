@@ -11,7 +11,7 @@ export default function BeetleScene({ onComplete }) {
   const [ballPos, setBallPos] = useState({ x: -300, y: 0 })
   const [particlesActive, setParticlesActive] = useState(false)
   const [phase, setPhase] = useState('idle') // idle | entering | center | exiting | done
-  const [showSign, setShowSign] = useState(false)
+
 
   const { shaking, shake } = useScreenShake()
   const animFrameRef = useRef(null)
@@ -60,7 +60,6 @@ export default function BeetleScene({ onComplete }) {
       if (!hasShownCenter.current) {
         hasShownCenter.current = true
         shake()
-        setShowSign(true)
       }
     } else if (elapsed < TOTAL_DURATION) {
       // Exit with acceleration
@@ -162,27 +161,6 @@ export default function BeetleScene({ onComplete }) {
         size={beetleSize}
       />
 
-      {/* "BENİM TOPUM" sign on the ball */}
-      {showSign && (
-        <motion.div
-          className="absolute z-30 pointer-events-none"
-          style={{
-            left: ballPos.x + ballSize * 0.25,
-            top: ballPos.y - 70,
-          }}
-          initial={{ opacity: 0, scale: 0.5, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-        >
-          <div className="glass rounded-lg px-3 py-1.5 border border-rose-gold/40 shadow-lg">
-            <span className="text-rose-gold font-display font-bold text-sm tracking-widest uppercase">
-              BENİM TOPUM
-            </span>
-          </div>
-          {/* Little stick */}
-          <div className="w-px h-4 bg-rose-gold/50 mx-auto" />
-        </motion.div>
-      )}
 
       {/* Spotlight overlay */}
       <SpotlightOverlay x={spotlightPos.x} y={spotlightPos.y} />
