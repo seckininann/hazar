@@ -27,11 +27,11 @@ export default function SpotlightOverlay({ x, y }) {
     ctx.clearRect(0, 0, w, h)
 
     // Dark vignette base
-    ctx.fillStyle = 'rgba(5, 5, 10, 0.72)'
+    ctx.fillStyle = 'rgba(5, 5, 10, 0.45)'
     ctx.fillRect(0, 0, w, h)
 
     // Spotlight radial gradient cutout
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, 320)
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, 520)
     grad.addColorStop(0, 'rgba(0,0,0,0)')
     grad.addColorStop(0.4, 'rgba(0,0,0,0)')
     grad.addColorStop(0.8, 'rgba(5,5,10,0.3)')
@@ -54,7 +54,7 @@ export default function SpotlightOverlay({ x, y }) {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none absolute inset-0 z-20"
+      className="pointer-events-none absolute inset-0 z-10"
     />
   )
 }

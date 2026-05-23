@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff, Heart, Lock, Scan, Camera, CameraOff } from 'lucide-react'
+import { Eye, EyeOff, Heart, Lock, CameraOff } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 import { useProximity } from '../../hooks/useProximity.js'
 import CharSplitText from '../ui/CharSplitText.jsx'
@@ -175,118 +175,31 @@ function HeartBurst({ trigger }) {
   )
 }
 
-// ─── Camera permission screen ─────────────────────────────────────────────────
-function CameraPermissionScreen({ onGranted, onDenied }) {
-  const [requesting, setRequesting] = useState(false)
-  const [denied, setDenied] = useState(false)
-
-  const requestCamera = useCallback(async () => {
-    setRequesting(true)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-      onGranted(stream)
-    } catch {
-      setDenied(true)
-      setRequesting(false)
-      setTimeout(() => onDenied(), 1500)
-    }
-  }, [onGranted, onDenied])
-
-  return (
-    <motion.div
-      className="glass-strong rounded-3xl p-8 md:p-10 flex flex-col items-center gap-6 text-center"
-      style={{ border: '1px solid rgba(212,160,122,0.15)' }}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.85 }}
-      transition={{ duration: 0.6 }}
-    >
-      <motion.div
-        className="w-16 h-16 rounded-full flex items-center justify-center"
-        style={{ background: 'rgba(212,160,122,0.08)', border: '1px solid rgba(212,160,122,0.2)' }}
-        animate={{ scale: [1, 1.06, 1] }}
-        transition={{ repeat: Infinity, duration: 2 }}
-      >
-        {denied ? <CameraOff size={26} className="text-red-400/70" /> : <Camera size={26} className="text-rose-gold/70" />}
-      </motion.div>
-
-      <div>
-        <CharSplitText
-          text="Kamera İzni"
-          className="block text-white/70 font-display text-lg tracking-wide mb-2"
-          staggerDelay={0.05}
-        />
-        <p className="text-white/30 text-xs font-sans leading-relaxed max-w-[220px] mx-auto">
-          {denied
-            ? 'Kamera erişimi reddedildi. Şifre ekranına geçiliyor...'
-            : 'Kimlik doğrulama için kameranı kullanmamıza izin ver'}
-        </p>
-      </div>
-
-      {!denied && (
-        <motion.button
-          className="luxury-btn w-full py-3 rounded-xl text-sm tracking-[0.2em] uppercase font-mono transition-all flex items-center justify-center gap-2"
-          style={{
-            background: 'rgba(212,160,122,0.12)',
-            border: '1px solid rgba(212,160,122,0.25)',
-            color: 'rgba(245,240,235,0.8)',
-          }}
-          onClick={requestCamera}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          disabled={requesting}
-        >
-          {requesting ? (
-            <motion.div
-              className="w-4 h-4 rounded-full border border-rose-gold/50 border-t-rose-gold"
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-            />
-          ) : (
-            <Camera size={14} />
-          )}
-          {requesting ? 'Bekleniyor...' : 'Kamerayı Aç'}
-        </motion.button>
-      )}
-
-      <button
-        className="text-white/15 text-xs font-mono tracking-widest hover:text-white/30 transition-colors"
-        onClick={() => onDenied()}
-      >
-        Atla →
-      </button>
-    </motion.div>
-  )
-}
-
-// ─── FaceID scanner with live camera ─────────────────────────────────────────
+// ─── Romantic scanner with live camera ───────────────────────────────────────
 function FaceIDScanner({ onComplete, cameraStream }) {
   const videoRef = useRef(null)
   const [scanProgress, setScanProgress] = useState(0)
   const [scanLine, setScanLine] = useState(0)
-  const [statusText, setStatusText] = useState('Taranıyor...')
+  const [statusText, setStatusText] = useState('Seni tanıyorum...')
 
-  // Attach camera stream to video element
   useEffect(() => {
     if (videoRef.current && cameraStream) {
       videoRef.current.srcObject = cameraStream
       videoRef.current.play().catch(() => {})
     }
     return () => {
-      if (cameraStream) {
-        cameraStream.getTracks().forEach(t => t.stop())
-      }
+      if (cameraStream) cameraStream.getTracks().forEach(t => t.stop())
     }
   }, [cameraStream])
 
   useEffect(() => {
     const statuses = [
-      { p: 0.15, t: 'Yüz geometrisi algılanıyor...' },
-      { p: 0.35, t: 'Derinlik imzası eşleştiriliyor...' },
-      { p: 0.55, t: 'Kraliçe yüz hizalaması analiz ediliyor...' },
-      { p: 0.75, t: 'İlahi ışıltı doğrulanıyor...' },
-      { p: 0.90, t: 'Eşleşme güveni: %100' },
-      { p: 1.0,  t: 'Kraliçe tanımlandı ✓' },
+      { p: 0.18, t: 'Kalbim seni hissediyor...' },
+      { p: 0.36, t: 'Gülüşün eşleşiyor...' },
+      { p: 0.55, t: 'Gözlerin dünyanın en güzeli...' },
+      { p: 0.74, t: 'Seni seviyorum ♡' },
+      { p: 0.92, t: 'Hoş geldin kraliçem...' },
+      { p: 1.0,  t: '✨ Tanındın ✨' },
     ]
 
     const interval = setInterval(() => {
@@ -318,16 +231,16 @@ function FaceIDScanner({ onComplete, cameraStream }) {
       <div className="relative w-44 h-44 md:w-56 md:h-56">
         {/* Corner brackets */}
         {[
-          'top-0 left-0 border-t-2 border-l-2',
-          'top-0 right-0 border-t-2 border-r-2',
-          'bottom-0 left-0 border-b-2 border-l-2',
-          'bottom-0 right-0 border-b-2 border-r-2',
+          'top-0 left-0 border-t-2 border-l-2 rounded-tl-lg',
+          'top-0 right-0 border-t-2 border-r-2 rounded-tr-lg',
+          'bottom-0 left-0 border-b-2 border-l-2 rounded-bl-lg',
+          'bottom-0 right-0 border-b-2 border-r-2 rounded-br-lg',
         ].map((cls, i) => (
           <motion.div
             key={i}
-            className={`absolute w-7 h-7 border-rose-gold/80 ${cls}`}
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.2 }}
+            className={`absolute w-8 h-8 border-rose-gold/60 ${cls}`}
+            animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.04, 1] }}
+            transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}
           />
         ))}
 
@@ -347,75 +260,87 @@ function FaceIDScanner({ onComplete, cameraStream }) {
             </div>
           )}
 
-          {/* Scan line overlay */}
+          {/* Romantic scan line */}
           <motion.div
-            className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-rose-gold to-transparent pointer-events-none"
+            className="absolute w-full pointer-events-none"
             style={{ top: `${scanLine}%` }}
-          />
+          >
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-rose-gold/90 to-transparent" />
+            <div className="w-full h-3 bg-gradient-to-b from-rose-gold/10 to-transparent" />
+          </motion.div>
 
-          {/* Glow overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-void/40 via-transparent to-transparent pointer-events-none" />
+          {/* Warm vignette */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[rgba(50,10,20,0.35)] via-transparent to-transparent pointer-events-none" />
         </div>
 
         {/* Progress ring */}
         <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(212,160,122,0.08)" strokeWidth="1.5" />
-          <circle
+          <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(212,160,122,0.06)" strokeWidth="1" />
+          <motion.circle
             cx="50" cy="50" r="48"
             fill="none"
-            stroke="rgba(212,160,122,0.85)"
-            strokeWidth="1.5"
+            stroke="url(#heartGrad)"
+            strokeWidth="2"
             strokeDasharray={`${scanProgress * 301.6} 301.6`}
             strokeLinecap="round"
           />
+          <defs>
+            <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#d4a07a" />
+              <stop offset="100%" stopColor="#c8b4e8" />
+            </linearGradient>
+          </defs>
         </svg>
       </div>
 
-      {/* Status */}
+      {/* Romantic status */}
       <div className="text-center">
-        <p className="text-rose-gold/80 text-xs tracking-[0.25em] uppercase font-mono">{statusText}</p>
-        <div className="mt-2.5 w-44 h-1 bg-white/5 rounded-full overflow-hidden">
+        <motion.p
+          key={statusText}
+          className="text-rose-gold/90 text-sm font-display italic tracking-wide"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {statusText}
+        </motion.p>
+        <div className="mt-3 w-44 h-0.5 bg-white/5 rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-rose-gold-dark to-rose-gold-light rounded-full"
-            style={{ width: `${scanProgress * 100}%` }}
+            className="h-full rounded-full"
+            style={{
+              width: `${scanProgress * 100}%`,
+              background: 'linear-gradient(90deg, #d4a07a, #c8b4e8)',
+            }}
           />
         </div>
-        <p className="text-white/20 text-xs mt-1.5 tracking-widest font-mono">
-          %{Math.round(scanProgress * 100)}
-        </p>
-      </div>
-
-      <div className="flex items-center gap-2 text-white/20">
-        <Scan size={11} />
-        <span className="text-xs tracking-[0.35em] uppercase font-mono">YÜZ TARAMA</span>
-        <Scan size={11} />
+        {/* Floating hearts */}
+        <div className="flex justify-center gap-3 mt-3">
+          {['♡','♡','♡'].map((h, i) => (
+            <motion.span
+              key={i}
+              className="text-rose-gold/40 text-sm"
+              animate={{ y: [0, -4, 0], opacity: [0.3, 0.8, 0.3] }}
+              transition={{ repeat: Infinity, duration: 1.8, delay: i * 0.4 }}
+            >
+              {h}
+            </motion.span>
+          ))}
+        </div>
       </div>
     </motion.div>
   )
 }
 
 // ─── Main PasswordGate ────────────────────────────────────────────────────────
-export default function PasswordGate() {
+export default function PasswordGate({ cameraStream = null }) {
   const { dispatch } = useAppState()
-  // stages: camera-request | scanning | form
-  const [stage, setStage] = useState('camera-request')
-  const [cameraStream, setCameraStream] = useState(null)
+  const [stage, setStage] = useState('scanning')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState(false)
   const [heartBurst, setHeartBurst] = useState(false)
   const inputRef = useRef(null)
   const { ref: btnRef, glowStyle } = useProximity(120)
-
-  const handleCameraGranted = useCallback((stream) => {
-    setCameraStream(stream)
-    setStage('scanning')
-  }, [])
-
-  const handleCameraDenied = useCallback(() => {
-    setCameraStream(null)
-    setStage('scanning')
-  }, [])
 
   const handleScanComplete = useCallback(() => {
     setStage('form')
@@ -445,16 +370,7 @@ export default function PasswordGate() {
       <div className="relative z-10 w-full max-w-sm mx-4">
         <AnimatePresence mode="wait">
 
-          {stage === 'camera-request' && (
-            <motion.div key="cam-req" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <CameraPermissionScreen
-                onGranted={handleCameraGranted}
-                onDenied={handleCameraDenied}
-              />
-            </motion.div>
-          )}
-
-          {stage === 'scanning' && (
+            {stage === 'scanning' && (
             <motion.div
               key="scanner"
               className="glass-strong rounded-3xl p-8 md:p-10 flex flex-col items-center gap-5"

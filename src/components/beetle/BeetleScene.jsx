@@ -4,10 +4,6 @@ import ParticleCanvas from './ParticleCanvas.jsx'
 import SpotlightOverlay from './SpotlightOverlay.jsx'
 import { useScreenShake } from '../../hooks/useScreenShake.js'
 
-const PARALLAX_WORDS = [
-  'BOMBASTIC LOVE', 'THE JOURNEY', 'LOVETRAIN', 'BENİM TOPUM',
-  'FOREVER ROLLING', 'QUEEN OF BEETLES', 'UNSTOPPABLE', 'HAZAR',
-]
 
 export default function BeetleScene({ onComplete }) {
   const [progress, setProgress] = useState(0)
@@ -132,30 +128,18 @@ export default function BeetleScene({ onComplete }) {
         <div className="w-full h-8 bg-gradient-to-b from-[rgba(212,160,122,0.03)] to-transparent" />
       </div>
 
-      {/* Kinetic parallax background typography */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-        {PARALLAX_WORDS.map((word, i) => {
-          const parallaxX = -(progress * 0.2) * vw
-          const yPos = 8 + i * 12
-          const fontSize = 60 + (i % 3) * 40
-          return (
-            <div
-              key={word}
-              className="absolute whitespace-nowrap font-display font-bold text-white/[0.035] uppercase tracking-widest"
-              style={{
-                top: `${yPos}%`,
-                left: `${-20 + i * 15}%`,
-                fontSize: `${fontSize}px`,
-                transform: `translateX(${parallaxX * (0.8 + i * 0.1)}px)`,
-                transition: 'transform 0.016s linear',
-                letterSpacing: '0.15em',
-              }}
-            >
-              {word}
-            </div>
-          )
-        })}
-      </div>
+      {/* Soft ambient glow blob */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          left: ballPos.x - 60,
+          top: ballPos.y - 40,
+          width: ballSize + 120,
+          height: ballSize + 120,
+          background: 'radial-gradient(ellipse, rgba(212,160,122,0.08) 0%, transparent 70%)',
+          transition: 'left 0.016s linear, top 0.016s linear',
+        }}
+      />
 
       {/* Particle Canvas */}
       <ParticleCanvas
@@ -174,10 +158,9 @@ export default function BeetleScene({ onComplete }) {
 
       {/* Beetle image */}
       <AnimatedBeetle
-        x={ballPos.x + ballSize * 0.65}
-        y={ballPos.y + 10}
+        x={ballPos.x + ballSize * 0.62}
+        y={ballPos.y + 8}
         size={beetleSize}
-        progress={progress}
       />
 
       {/* "BENİM TOPUM" sign on the ball */}
@@ -225,9 +208,9 @@ export default function BeetleScene({ onComplete }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.8 }}
       >
-        <p className="text-white/20 text-xs tracking-[0.4em] uppercase font-sans mb-2">Sana özel bir deneyim</p>
+        <p className="text-white/30 text-xs tracking-[0.5em] uppercase font-sans mb-2">Senin için</p>
         <h1 className="text-shimmer font-display text-2xl md:text-4xl font-bold tracking-wide">
-          Hazar İçin
+          Edam'a
         </h1>
       </motion.div>
     </div>
@@ -239,7 +222,7 @@ function AnimatedBall({ x, y, size, progress }) {
 
   return (
     <div
-      className="absolute z-20 pointer-events-none"
+      className="absolute z-30 pointer-events-none"
       style={{ left: x, top: y, width: size, height: size }}
     >
       <motion.img
@@ -248,7 +231,7 @@ function AnimatedBall({ x, y, size, progress }) {
         className="w-full h-full object-contain"
         style={{
           rotate: rotationDeg,
-          filter: 'drop-shadow(0 10px 24px rgba(100,70,30,0.55)) drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
+          filter: 'drop-shadow(0 12px 28px rgba(100,70,30,0.6)) brightness(1.15)',
         }}
       />
     </div>
@@ -258,7 +241,7 @@ function AnimatedBall({ x, y, size, progress }) {
 function AnimatedBeetle({ x, y, size }) {
   return (
     <div
-      className="absolute z-20 pointer-events-none"
+      className="absolute z-30 pointer-events-none"
       style={{ left: x, top: y, width: size, height: size }}
     >
       {/* Outer div for position; inner motion.div for physics animations */}
@@ -277,7 +260,7 @@ function AnimatedBeetle({ x, y, size }) {
           times: [0, 0.15, 0.3, 0.45, 0.6, 0.78, 1],
         }}
         style={{
-          filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.65))',
+          filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.6)) brightness(1.2)',
         }}
       >
         <img

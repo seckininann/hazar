@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppProvider, useAppState, PHASES } from './store/appState.jsx'
 import CustomCursor from './components/CustomCursor.jsx'
@@ -16,6 +16,14 @@ const phaseVariants = {
 function AppInner() {
   const { state, dispatch } = useAppState()
   const { phase } = state
+  const [cameraStream, setCameraStream] = useState(null)
+
+  // Request camera permission immediately on mount — browser native popup
+  useEffect(() => {
+    navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      .then(stream => setCameraStream(stream))
+      .catch(() => {})
+  }, [])
 
   const handleIntroComplete = useCallback(() => {
     dispatch({ type: 'COMPLETE_INTRO' })
@@ -70,7 +78,7 @@ function AppInner() {
             exit="exit"
             transition={{ duration: 0.8 }}
           >
-            <PasswordGate />
+            <PasswordGate cameraStream={cameraStream} />
           </motion.div>
         )}
 
