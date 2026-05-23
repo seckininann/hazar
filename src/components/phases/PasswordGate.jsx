@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
-import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
-import { Eye, EyeOff, Heart, Lock, Scan } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Eye, EyeOff, Heart, Lock, Scan, Camera, CameraOff } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 import { useProximity } from '../../hooks/useProximity.js'
 import CharSplitText from '../ui/CharSplitText.jsx'
@@ -175,35 +175,132 @@ function HeartBurst({ trigger }) {
   )
 }
 
-// ─── FaceID scanner ───────────────────────────────────────────────────────────
-function FaceIDScanner({ onComplete }) {
+// ─── Camera permission screen ─────────────────────────────────────────────────
+function CameraPermissionScreen({ onGranted, onDenied }) {
+  const [requesting, setRequesting] = useState(false)
+  const [denied, setDenied] = useState(false)
+
+  const requestCamera = useCallback(async () => {
+    setRequesting(true)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      onGranted(stream)
+    } catch {
+      setDenied(true)
+      setRequesting(false)
+      setTimeout(() => onDenied(), 1500)
+    }
+  }, [onGranted, onDenied])
+
+  return (
+    <motion.div
+      className="glass-strong rounded-3xl p-8 md:p-10 flex flex-col items-center gap-6 text-center"
+      style={{ border: '1px solid rgba(212,160,122,0.15)' }}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.85 }}
+      transition={{ duration: 0.6 }}
+    >
+      <motion.div
+        className="w-16 h-16 rounded-full flex items-center justify-center"
+        style={{ background: 'rgba(212,160,122,0.08)', border: '1px solid rgba(212,160,122,0.2)' }}
+        animate={{ scale: [1, 1.06, 1] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+      >
+        {denied ? <CameraOff size={26} className="text-red-400/70" /> : <Camera size={26} className="text-rose-gold/70" />}
+      </motion.div>
+
+      <div>
+        <CharSplitText
+          text="Kamera İzni"
+          className="block text-white/70 font-display text-lg tracking-wide mb-2"
+          staggerDelay={0.05}
+        />
+        <p className="text-white/30 text-xs font-sans leading-relaxed max-w-[220px] mx-auto">
+          {denied
+            ? 'Kamera erişimi reddedildi. Şifre ekranına geçiliyor...'
+            : 'Kimlik doğrulama için kameranı kullanmamıza izin ver'}
+        </p>
+      </div>
+
+      {!denied && (
+        <motion.button
+          className="luxury-btn w-full py-3 rounded-xl text-sm tracking-[0.2em] uppercase font-mono transition-all flex items-center justify-center gap-2"
+          style={{
+            background: 'rgba(212,160,122,0.12)',
+            border: '1px solid rgba(212,160,122,0.25)',
+            color: 'rgba(245,240,235,0.8)',
+          }}
+          onClick={requestCamera}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          disabled={requesting}
+        >
+          {requesting ? (
+            <motion.div
+              className="w-4 h-4 rounded-full border border-rose-gold/50 border-t-rose-gold"
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+            />
+          ) : (
+            <Camera size={14} />
+          )}
+          {requesting ? 'Bekleniyor...' : 'Kamerayı Aç'}
+        </motion.button>
+      )}
+
+      <button
+        className="text-white/15 text-xs font-mono tracking-widest hover:text-white/30 transition-colors"
+        onClick={() => onDenied()}
+      >
+        Atla →
+      </button>
+    </motion.div>
+  )
+}
+
+// ─── FaceID scanner with live camera ─────────────────────────────────────────
+function FaceIDScanner({ onComplete, cameraStream }) {
+  const videoRef = useRef(null)
   const [scanProgress, setScanProgress] = useState(0)
   const [scanLine, setScanLine] = useState(0)
-  const [statusText, setStatusText] = useState('Initializing scan...')
+  const [statusText, setStatusText] = useState('Taranıyor...')
+
+  // Attach camera stream to video element
+  useEffect(() => {
+    if (videoRef.current && cameraStream) {
+      videoRef.current.srcObject = cameraStream
+      videoRef.current.play().catch(() => {})
+    }
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop())
+      }
+    }
+  }, [cameraStream])
 
   useEffect(() => {
     const statuses = [
-      { p: 0.15, t: 'Detecting facial geometry...' },
-      { p: 0.35, t: 'Mapping depth signature...' },
-      { p: 0.55, t: 'Analyzing Queen face alignment...' },
-      { p: 0.75, t: 'Verifying divine radiance...' },
-      { p: 0.90, t: 'Match confidence: 100%' },
-      { p: 1.0, t: 'Queen identified ✓' },
+      { p: 0.15, t: 'Yüz geometrisi algılanıyor...' },
+      { p: 0.35, t: 'Derinlik imzası eşleştiriliyor...' },
+      { p: 0.55, t: 'Kraliçe yüz hizalaması analiz ediliyor...' },
+      { p: 0.75, t: 'İlahi ışıltı doğrulanıyor...' },
+      { p: 0.90, t: 'Eşleşme güveni: %100' },
+      { p: 1.0,  t: 'Kraliçe tanımlandı ✓' },
     ]
 
-    let current = 0
     const interval = setInterval(() => {
       setScanProgress(p => {
-        const next = Math.min(p + 0.012, 1)
-        const status = statuses.find(s => s.p >= next && s.p >= p)
+        const next = Math.min(p + 0.008, 1)
+        const status = statuses.find(s => s.p >= next && s.p > p)
         if (status) setStatusText(status.t)
         if (next >= 1) {
           clearInterval(interval)
-          setTimeout(onComplete, 800)
+          setTimeout(onComplete, 900)
         }
         return next
       })
-      setScanLine(l => (l + 3) % 100)
+      setScanLine(l => (l + 2) % 100)
     }, 40)
 
     return () => clearInterval(interval)
@@ -211,13 +308,14 @@ function FaceIDScanner({ onComplete }) {
 
   return (
     <motion.div
-      className="flex flex-col items-center gap-6"
+      className="flex flex-col items-center gap-5"
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="relative w-40 h-40 md:w-52 md:h-52">
+      {/* Scanner frame */}
+      <div className="relative w-44 h-44 md:w-56 md:h-56">
         {/* Corner brackets */}
         {[
           'top-0 left-0 border-t-2 border-l-2',
@@ -225,33 +323,47 @@ function FaceIDScanner({ onComplete }) {
           'bottom-0 left-0 border-b-2 border-l-2',
           'bottom-0 right-0 border-b-2 border-r-2',
         ].map((cls, i) => (
-          <div
+          <motion.div
             key={i}
-            className={`absolute w-6 h-6 border-rose-gold/70 ${cls}`}
+            className={`absolute w-7 h-7 border-rose-gold/80 ${cls}`}
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.2 }}
           />
         ))}
 
-        {/* Beetle face inside scanner */}
-        <div className="absolute inset-3 rounded-lg overflow-hidden bg-void/40 flex items-center justify-center">
-          <img
-            src="/assets/beetle.png"
-            alt="scan"
-            className="w-full h-full object-contain opacity-60"
-          />
-          {/* Scan line */}
-          <div
-            className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-rose-gold/80 to-transparent pointer-events-none"
+        {/* Video / fallback */}
+        <div className="absolute inset-3 rounded-xl overflow-hidden bg-void/60">
+          {cameraStream ? (
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover scale-x-[-1]"
+              muted
+              playsInline
+              autoPlay
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <CameraOff size={28} className="text-white/20" />
+            </div>
+          )}
+
+          {/* Scan line overlay */}
+          <motion.div
+            className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-rose-gold to-transparent pointer-events-none"
             style={{ top: `${scanLine}%` }}
           />
+
+          {/* Glow overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-void/40 via-transparent to-transparent pointer-events-none" />
         </div>
 
         {/* Progress ring */}
         <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(212,160,122,0.1)" strokeWidth="1.5" />
+          <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(212,160,122,0.08)" strokeWidth="1.5" />
           <circle
             cx="50" cy="50" r="48"
             fill="none"
-            stroke="rgba(212,160,122,0.8)"
+            stroke="rgba(212,160,122,0.85)"
             strokeWidth="1.5"
             strokeDasharray={`${scanProgress * 301.6} 301.6`}
             strokeLinecap="round"
@@ -259,23 +371,24 @@ function FaceIDScanner({ onComplete }) {
         </svg>
       </div>
 
+      {/* Status */}
       <div className="text-center">
-        <p className="text-rose-gold/80 text-xs tracking-[0.3em] uppercase font-mono">{statusText}</p>
-        <div className="mt-3 w-48 h-1 bg-white/5 rounded-full overflow-hidden">
+        <p className="text-rose-gold/80 text-xs tracking-[0.25em] uppercase font-mono">{statusText}</p>
+        <div className="mt-2.5 w-44 h-1 bg-white/5 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-rose-gold-dark to-rose-gold-light rounded-full"
             style={{ width: `${scanProgress * 100}%` }}
           />
         </div>
-        <p className="text-white/20 text-xs mt-2 tracking-widest font-mono">
-          {Math.round(scanProgress * 100)}%
+        <p className="text-white/20 text-xs mt-1.5 tracking-widest font-mono">
+          %{Math.round(scanProgress * 100)}
         </p>
       </div>
 
       <div className="flex items-center gap-2 text-white/20">
-        <Scan size={12} />
-        <span className="text-xs tracking-[0.3em] uppercase font-mono">FACE-ID</span>
-        <Scan size={12} />
+        <Scan size={11} />
+        <span className="text-xs tracking-[0.35em] uppercase font-mono">YÜZ TARAMA</span>
+        <Scan size={11} />
       </div>
     </motion.div>
   )
@@ -284,13 +397,25 @@ function FaceIDScanner({ onComplete }) {
 // ─── Main PasswordGate ────────────────────────────────────────────────────────
 export default function PasswordGate() {
   const { dispatch } = useAppState()
-  const [stage, setStage] = useState('scanning') // scanning | form
+  // stages: camera-request | scanning | form
+  const [stage, setStage] = useState('camera-request')
+  const [cameraStream, setCameraStream] = useState(null)
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState(false)
   const [heartBurst, setHeartBurst] = useState(false)
   const inputRef = useRef(null)
   const { ref: btnRef, glowStyle } = useProximity(120)
+
+  const handleCameraGranted = useCallback((stream) => {
+    setCameraStream(stream)
+    setStage('scanning')
+  }, [])
+
+  const handleCameraDenied = useCallback(() => {
+    setCameraStream(null)
+    setStage('scanning')
+  }, [])
 
   const handleScanComplete = useCallback(() => {
     setStage('form')
@@ -312,10 +437,6 @@ export default function PasswordGate() {
     }
   }, [password, dispatch])
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Enter') handleSubmit()
-  }, [handleSubmit])
-
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
       <GradientCanvas />
@@ -323,24 +444,36 @@ export default function PasswordGate() {
 
       <div className="relative z-10 w-full max-w-sm mx-4">
         <AnimatePresence mode="wait">
-          {stage === 'scanning' ? (
+
+          {stage === 'camera-request' && (
+            <motion.div key="cam-req" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <CameraPermissionScreen
+                onGranted={handleCameraGranted}
+                onDenied={handleCameraDenied}
+              />
+            </motion.div>
+          )}
+
+          {stage === 'scanning' && (
             <motion.div
               key="scanner"
-              className="glass-strong rounded-3xl p-8 md:p-10 flex flex-col items-center gap-6"
+              className="glass-strong rounded-3xl p-8 md:p-10 flex flex-col items-center gap-5"
               style={{ border: '1px solid rgba(212,160,122,0.15)' }}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.85 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
+              transition={{ duration: 0.6 }}
             >
               <CharSplitText
-                text="Tanımlama"
-                className="text-white/40 text-xs tracking-[0.4em] uppercase font-sans"
+                text="Kraliçe Tanımlama"
+                className="text-white/40 text-xs tracking-[0.35em] uppercase font-sans"
                 staggerDelay={0.04}
               />
-              <FaceIDScanner onComplete={handleScanComplete} />
+              <FaceIDScanner onComplete={handleScanComplete} cameraStream={cameraStream} />
             </motion.div>
-          ) : (
+          )}
+
+          {stage === 'form' && (
             <motion.div
               key="form"
               className="glass-strong rounded-3xl p-8 md:p-10"
@@ -350,7 +483,6 @@ export default function PasswordGate() {
               exit={{ opacity: 0, scale: 1.1 }}
               transition={{ duration: 0.6, type: 'spring', stiffness: 200, damping: 20 }}
             >
-              {/* Header */}
               <div className="text-center mb-8">
                 <motion.div
                   className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4"
@@ -370,7 +502,6 @@ export default function PasswordGate() {
                 </p>
               </div>
 
-              {/* Input */}
               <form onSubmit={handleSubmit}>
                 <div className="relative mb-4">
                   <motion.input
@@ -378,15 +509,13 @@ export default function PasswordGate() {
                     type={showPass ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    onKeyDown={handleKeyDown}
+                    onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                     placeholder="••••••••"
                     className="luxury-input w-full px-4 py-3.5 rounded-xl pr-12 text-center text-base"
-                    animate={error ? {
-                      x: [-8, 8, -6, 6, -4, 4, 0],
-                      borderColor: ['rgba(239,68,68,0.8)', 'rgba(212,160,122,0.2)'],
-                    } : {}}
+                    animate={error ? { x: [-8, 8, -6, 6, -4, 4, 0] } : {}}
                     transition={{ duration: 0.4 }}
                     data-cursor="input"
+                    autoFocus
                   />
                   <button
                     type="button"
@@ -437,6 +566,7 @@ export default function PasswordGate() {
               </p>
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
     </div>

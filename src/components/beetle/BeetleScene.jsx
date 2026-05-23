@@ -24,9 +24,9 @@ export default function BeetleScene({ onComplete }) {
   const containerRef = useRef(null)
 
   // Duration constants (ms)
-  const ENTER_DURATION = 1200
-  const CENTER_PAUSE = 600
-  const EXIT_DURATION = 1800
+  const ENTER_DURATION = 2800
+  const CENTER_PAUSE = 2200
+  const EXIT_DURATION = 3500
   const TOTAL_DURATION = ENTER_DURATION + CENTER_PAUSE + EXIT_DURATION
 
   const getViewport = () => ({
