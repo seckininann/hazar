@@ -35,9 +35,9 @@ export default function BeetleScene({ onComplete }) {
     const elapsed = timestamp - startTimeRef.current
     const { w, h } = getViewport()
 
-    const ballSize = Math.min(w * 0.85, h * 0.80)
-    const beetleSize = Math.min(w * 0.65, h * 0.62)
-    const groundY = h * 0.55 - ballSize * 0.5
+    const ballSize = Math.min(w * 0.38, h * 0.42)
+    const beetleSize = Math.min(w * 0.28, h * 0.32)
+    const groundY = h * 0.62 - ballSize * 0.5
     const startX = -ballSize
     const centerX = w / 2 - ballSize / 2
     const endX = w + ballSize
@@ -106,9 +106,9 @@ export default function BeetleScene({ onComplete }) {
   }, [animate])
 
   const { w: vw = 800, h: vh = 600 } = typeof window !== 'undefined' ? { w: window.innerWidth, h: window.innerHeight } : {}
-  const ballSize = Math.min(vw * 0.85, vh * 0.80)
-  const beetleSize = Math.min(vw * 0.65, vh * 0.62)
-  const groundY = vh * 0.55 - ballSize * 0.5
+  const ballSize = Math.min(vw * 0.38, vh * 0.42)
+  const beetleSize = Math.min(vw * 0.28, vh * 0.32)
+  const groundY = vh * 0.62 - ballSize * 0.5
 
   return (
     <div

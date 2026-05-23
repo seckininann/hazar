@@ -6,6 +6,7 @@ import BeetleScene from './components/beetle/BeetleScene.jsx'
 import PasswordGate from './components/phases/PasswordGate.jsx'
 import MemoryUniverse from './components/phases/MemoryUniverse.jsx'
 import CreativeStudio from './components/phases/CreativeStudio.jsx'
+import CameraConsent from './components/CameraConsent.jsx'
 
 const phaseVariants = {
   initial: { opacity: 0 },
@@ -17,12 +18,11 @@ function AppInner() {
   const { state, dispatch } = useAppState()
   const { phase } = state
   const [cameraStream, setCameraStream] = useState(null)
+  const [cameraConsented, setCameraConsented] = useState(false)
 
-  // Request camera permission immediately on mount — browser native popup
-  useEffect(() => {
-    navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-      .then(stream => setCameraStream(stream))
-      .catch(() => {})
+  const handleCameraConsent = useCallback((stream) => {
+    setCameraStream(stream)
+    setCameraConsented(true)
   }, [])
 
   const handleIntroComplete = useCallback(() => {
@@ -53,8 +53,15 @@ function AppInner() {
     <div className="w-screen h-screen overflow-hidden bg-void relative">
       <CustomCursor />
 
+      {/* Camera consent — shown FIRST, blocks everything underneath */}
+      <AnimatePresence>
+        {!cameraConsented && (
+          <CameraConsent onConsent={handleCameraConsent} />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence mode="wait">
-        {phase === PHASES.CINEMATIC_INTRO && (
+        {phase === PHASES.CINEMATIC_INTRO && cameraConsented && (
           <motion.div
             key="intro"
             className="absolute inset-0"
