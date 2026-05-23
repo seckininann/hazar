@@ -175,12 +175,21 @@ function HeartBurst({ trigger }) {
   )
 }
 
-// ─── Romantic scanner with live camera ───────────────────────────────────────
+// ─── Romantic rose scanner ────────────────────────────────────────────────────
+const ROSE_POSITIONS = [
+  { angle: 0,   flower: '🌹' },
+  { angle: 60,  flower: '🌸' },
+  { angle: 120, flower: '🌺' },
+  { angle: 180, flower: '🥀' },
+  { angle: 240, flower: '🌷' },
+  { angle: 300, flower: '🌸' },
+]
+
 function FaceIDScanner({ onComplete, cameraStream }) {
   const videoRef = useRef(null)
   const [scanProgress, setScanProgress] = useState(0)
   const [scanLine, setScanLine] = useState(0)
-  const [statusText, setStatusText] = useState('Seni tanıyorum...')
+  const [statusText, setStatusText] = useState('Eda...')
 
   useEffect(() => {
     if (videoRef.current && cameraStream) {
@@ -194,26 +203,27 @@ function FaceIDScanner({ onComplete, cameraStream }) {
 
   useEffect(() => {
     const statuses = [
-      { p: 0.18, t: 'Kalbim seni hissediyor...' },
-      { p: 0.36, t: 'Gülüşün eşleşiyor...' },
-      { p: 0.55, t: 'Gözlerin dünyanın en güzeli...' },
-      { p: 0.74, t: 'Seni seviyorum ♡' },
-      { p: 0.92, t: 'Hoş geldin kraliçem...' },
-      { p: 1.0,  t: '✨ Tanındın ✨' },
+      { p: 0.14, t: 'Kalbim seni hissediyor...' },
+      { p: 0.30, t: 'Gülüşün eşleşti 🌹' },
+      { p: 0.48, t: 'Gözlerin dünyanın en güzeli...' },
+      { p: 0.65, t: 'Seni çok seviyorum, Eda' },
+      { p: 0.82, t: 'Hoş geldin kraliçem 🌸' },
+      { p: 0.95, t: 'Her zaman seninle...' },
+      { p: 1.0,  t: '✨ Tanındın, Eda ✨' },
     ]
 
     const interval = setInterval(() => {
       setScanProgress(p => {
-        const next = Math.min(p + 0.008, 1)
+        const next = Math.min(p + 0.004, 1)
         const status = statuses.find(s => s.p >= next && s.p > p)
         if (status) setStatusText(status.t)
         if (next >= 1) {
           clearInterval(interval)
-          setTimeout(onComplete, 900)
+          setTimeout(onComplete, 1200)
         }
         return next
       })
-      setScanLine(l => (l + 2) % 100)
+      setScanLine(l => (l + 1.5) % 100)
     }, 40)
 
     return () => clearInterval(interval)
@@ -221,108 +231,126 @@ function FaceIDScanner({ onComplete, cameraStream }) {
 
   return (
     <motion.div
-      className="flex flex-col items-center gap-5"
+      className="flex flex-col items-center gap-6"
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.6 }}
     >
-      {/* Scanner frame */}
-      <div className="relative w-44 h-44 md:w-56 md:h-56">
-        {/* Corner brackets */}
-        {[
-          'top-0 left-0 border-t-2 border-l-2 rounded-tl-lg',
-          'top-0 right-0 border-t-2 border-r-2 rounded-tr-lg',
-          'bottom-0 left-0 border-b-2 border-l-2 rounded-bl-lg',
-          'bottom-0 right-0 border-b-2 border-r-2 rounded-br-lg',
-        ].map((cls, i) => (
-          <motion.div
-            key={i}
-            className={`absolute w-8 h-8 border-rose-gold/60 ${cls}`}
-            animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.04, 1] }}
-            transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}
-          />
-        ))}
+      {/* Rose-framed circular camera */}
+      <div className="relative w-52 h-52 md:w-60 md:h-60">
 
-        {/* Video / fallback */}
-        <div className="absolute inset-3 rounded-xl overflow-hidden bg-void/60">
+        {/* Orbiting roses */}
+        {ROSE_POSITIONS.map(({ angle, flower }, i) => {
+          const rad = (angle * Math.PI) / 180
+          const r = 47
+          return (
+            <motion.div
+              key={i}
+              className="absolute text-xl md:text-2xl pointer-events-none"
+              style={{
+                left: `${50 + r * Math.cos(rad)}%`,
+                top: `${50 + r * Math.sin(rad)}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
+              animate={{
+                scale: [0.85, 1.15, 0.85],
+                opacity: [0.55, 1, 0.55],
+                rotate: [0, 12, -8, 0],
+              }}
+              transition={{ repeat: Infinity, duration: 2.8 + i * 0.3, delay: i * 0.35 }}
+            >
+              {flower}
+            </motion.div>
+          )
+        })}
+
+        {/* Circular camera frame */}
+        <div
+          className="absolute inset-7 rounded-full overflow-hidden"
+          style={{ border: '1.5px solid rgba(212,160,122,0.35)', boxShadow: '0 0 24px rgba(212,160,122,0.12), inset 0 0 16px rgba(200,180,232,0.06)' }}
+        >
           {cameraStream ? (
             <video
               ref={videoRef}
               className="w-full h-full object-cover scale-x-[-1]"
-              muted
-              playsInline
-              autoPlay
+              muted playsInline autoPlay
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <CameraOff size={28} className="text-white/20" />
+            <div className="w-full h-full flex items-center justify-center"
+              style={{ background: 'radial-gradient(ellipse, rgba(120,40,60,0.25) 0%, rgba(10,8,20,0.8) 100%)' }}
+            >
+              <span className="text-5xl select-none">🌹</span>
             </div>
           )}
 
-          {/* Romantic scan line */}
+          {/* Soft scan shimmer */}
           <motion.div
             className="absolute w-full pointer-events-none"
             style={{ top: `${scanLine}%` }}
           >
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-rose-gold/90 to-transparent" />
-            <div className="w-full h-3 bg-gradient-to-b from-rose-gold/10 to-transparent" />
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-rose-gold/70 to-transparent" />
+            <div className="w-full h-4 bg-gradient-to-b from-rose-gold/8 to-transparent" />
           </motion.div>
 
-          {/* Warm vignette */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[rgba(50,10,20,0.35)] via-transparent to-transparent pointer-events-none" />
+          {/* Bottom vignette */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-t from-[rgba(40,8,16,0.4)] via-transparent to-transparent pointer-events-none" />
         </div>
 
         {/* Progress ring */}
         <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(212,160,122,0.06)" strokeWidth="1" />
-          <motion.circle
-            cx="50" cy="50" r="48"
+          <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(212,160,122,0.06)" strokeWidth="1" />
+          <circle
+            cx="50" cy="50" r="46"
             fill="none"
-            stroke="url(#heartGrad)"
-            strokeWidth="2"
-            strokeDasharray={`${scanProgress * 301.6} 301.6`}
+            stroke="url(#roseGrad)"
+            strokeWidth="1.5"
+            strokeDasharray={`${scanProgress * 289} 289`}
             strokeLinecap="round"
           />
           <defs>
-            <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id="roseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#d4a07a" />
+              <stop offset="50%" stopColor="#e8a0b0" />
               <stop offset="100%" stopColor="#c8b4e8" />
             </linearGradient>
           </defs>
         </svg>
       </div>
 
-      {/* Romantic status */}
+      {/* Status text */}
       <div className="text-center">
-        <motion.p
-          key={statusText}
-          className="text-rose-gold/90 text-sm font-display italic tracking-wide"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          {statusText}
-        </motion.p>
-        <div className="mt-3 w-44 h-0.5 bg-white/5 rounded-full overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={statusText}
+            className="text-white/80 text-base font-display italic tracking-wide"
+            initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -6, filter: 'blur(4px)' }}
+            transition={{ duration: 0.7 }}
+          >
+            {statusText}
+          </motion.p>
+        </AnimatePresence>
+
+        {/* Progress bar */}
+        <div className="mt-4 w-40 mx-auto h-px bg-white/5 rounded-full overflow-hidden">
           <motion.div
             className="h-full rounded-full"
-            style={{
-              width: `${scanProgress * 100}%`,
-              background: 'linear-gradient(90deg, #d4a07a, #c8b4e8)',
-            }}
+            style={{ width: `${scanProgress * 100}%`, background: 'linear-gradient(90deg, #d4a07a, #e8a0b0, #c8b4e8)' }}
           />
         </div>
-        {/* Floating hearts */}
-        <div className="flex justify-center gap-3 mt-3">
-          {['♡','♡','♡'].map((h, i) => (
+
+        {/* Floating roses */}
+        <div className="flex justify-center gap-4 mt-3">
+          {['🌹', '🌸', '🌺'].map((r, i) => (
             <motion.span
               key={i}
-              className="text-rose-gold/40 text-sm"
-              animate={{ y: [0, -4, 0], opacity: [0.3, 0.8, 0.3] }}
-              transition={{ repeat: Infinity, duration: 1.8, delay: i * 0.4 }}
+              className="text-base select-none"
+              animate={{ y: [0, -5, 0], opacity: [0.5, 1, 0.5], scale: [0.9, 1.1, 0.9] }}
+              transition={{ repeat: Infinity, duration: 2.2, delay: i * 0.5 }}
             >
-              {h}
+              {r}
             </motion.span>
           ))}
         </div>
@@ -380,11 +408,14 @@ export default function PasswordGate({ cameraStream = null }) {
               exit={{ opacity: 0, scale: 0.85 }}
               transition={{ duration: 0.6 }}
             >
-              <CharSplitText
-                text="Kraliçe Tanımlama"
-                className="text-white/40 text-xs tracking-[0.35em] uppercase font-sans"
-                staggerDelay={0.04}
-              />
+              <div className="text-center">
+                <motion.p
+                  className="text-white/30 text-xs tracking-[0.5em] uppercase font-mono"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                >
+                  🌹 eda için 🌹
+                </motion.p>
+              </div>
               <FaceIDScanner onComplete={handleScanComplete} cameraStream={cameraStream} />
             </motion.div>
           )}

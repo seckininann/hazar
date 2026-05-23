@@ -36,7 +36,7 @@ export default function BeetleScene({ onComplete }) {
     const { w, h } = getViewport()
 
     const ballSize = Math.min(w * 0.38, h * 0.42)
-    const beetleSize = Math.min(w * 0.28, h * 0.32)
+    const beetleSize = Math.min(w * 0.35, h * 0.40)
     const groundY = h * 0.62 - ballSize * 0.5
     const startX = -ballSize
     const centerX = w / 2 - ballSize / 2
@@ -107,7 +107,7 @@ export default function BeetleScene({ onComplete }) {
 
   const { w: vw = 800, h: vh = 600 } = typeof window !== 'undefined' ? { w: window.innerWidth, h: window.innerHeight } : {}
   const ballSize = Math.min(vw * 0.38, vh * 0.42)
-  const beetleSize = Math.min(vw * 0.28, vh * 0.32)
+  const beetleSize = Math.min(vw * 0.35, vh * 0.40)
   const groundY = vh * 0.62 - ballSize * 0.5
 
   return (
@@ -200,18 +200,61 @@ export default function BeetleScene({ onComplete }) {
         Skip Experience
       </motion.button>
 
-      {/* Title */}
-      <motion.div
-        className="absolute top-10 left-1/2 -translate-x-1/2 z-40 text-center pointer-events-none"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.8 }}
-      >
-        <p className="text-white/30 text-xs tracking-[0.5em] uppercase font-sans mb-2">Senin için</p>
-        <h1 className="text-shimmer font-display text-2xl md:text-4xl font-bold tracking-wide">
-          Edam'a
-        </h1>
-      </motion.div>
+      {/* Title — zorluklardan yıldızlara */}
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-40 text-center pointer-events-none w-full">
+        <motion.p
+          className="text-white/25 text-xs tracking-[0.55em] uppercase font-mono mb-1"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 1.2 }}
+        >
+          zorluklardan
+        </motion.p>
+
+        {/* Star row */}
+        <div className="flex justify-center gap-2 my-1.5">
+          {['✨', '⭐', '✨'].map((s, i) => (
+            <motion.span
+              key={i}
+              className="text-xs select-none"
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.1 + i * 0.15, duration: 0.5, type: 'spring' }}
+              style={{ display: 'inline-block' }}
+            >
+              {s}
+            </motion.span>
+          ))}
+        </div>
+
+        <motion.h1
+          className="text-shimmer font-display text-3xl md:text-5xl font-bold tracking-wide"
+          initial={{ opacity: 0, y: 14, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ delay: 1.4, duration: 1.4, ease: 'easeOut' }}
+        >
+          yıldızlara
+        </motion.h1>
+
+        {/* Trailing stars */}
+        <motion.div
+          className="flex justify-center gap-3 mt-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.2, duration: 1 }}
+        >
+          {['⭐', '✨', '⭐', '✨', '⭐'].map((s, i) => (
+            <motion.span
+              key={i}
+              className="text-xs select-none"
+              animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
+              transition={{ repeat: Infinity, duration: 1.8 + i * 0.2, delay: i * 0.25 }}
+            >
+              {s}
+            </motion.span>
+          ))}
+        </motion.div>
+      </div>
     </div>
   )
 }

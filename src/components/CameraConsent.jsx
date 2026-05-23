@@ -88,12 +88,6 @@ export default function CameraConsent({ onConsent }) {
             ) : 'onayla'}
           </motion.button>
 
-          <button
-            onClick={() => onConsent(null)}
-            className="text-white/15 text-xs font-mono tracking-widest hover:text-white/30 transition-colors mt-1"
-          >
-            geç →
-          </button>
         </motion.div>
 
         {/* Bottom decorative line */}
