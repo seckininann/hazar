@@ -35,9 +35,9 @@ export default function BeetleScene({ onComplete }) {
     const elapsed = timestamp - startTimeRef.current
     const { w, h } = getViewport()
 
-    const ballSize = Math.min(w * 0.28, 220)
-    const beetleSize = Math.min(w * 0.22, 180)
-    const groundY = h * 0.62
+    const ballSize = Math.min(w * 0.85, h * 0.80)
+    const beetleSize = Math.min(w * 0.65, h * 0.62)
+    const groundY = h * 0.55 - ballSize * 0.5
     const startX = -ballSize
     const centerX = w / 2 - ballSize / 2
     const endX = w + ballSize
@@ -84,9 +84,8 @@ export default function BeetleScene({ onComplete }) {
     const ballFinalX = ballX
     const ballFinalY = groundY + sineY
 
-    // Beetle position: behind (right of center) pushing
-    const beetleOffset = ballSize * 0.65
-    const beetleFinalX = ballX + beetleOffset
+    // Beetle position: behind (left of) ball — pushing from rear
+    const beetleFinalX = ballX - beetleSize * 0.55
     const beetleFinalY = groundY + sineY2
 
     setBallPos({ x: ballFinalX, y: ballFinalY })
@@ -107,9 +106,9 @@ export default function BeetleScene({ onComplete }) {
   }, [animate])
 
   const { w: vw = 800, h: vh = 600 } = typeof window !== 'undefined' ? { w: window.innerWidth, h: window.innerHeight } : {}
-  const ballSize = Math.min(vw * 0.28, 220)
-  const beetleSize = Math.min(vw * 0.22, 180)
-  const groundY = vh * 0.62
+  const ballSize = Math.min(vw * 0.85, vh * 0.80)
+  const beetleSize = Math.min(vw * 0.65, vh * 0.62)
+  const groundY = vh * 0.55 - ballSize * 0.5
 
   return (
     <div
@@ -122,7 +121,7 @@ export default function BeetleScene({ onComplete }) {
       {/* Ground line */}
       <div
         className="absolute w-full"
-        style={{ top: `${groundY + ballSize * 0.85}px` }}
+        style={{ top: `${groundY + ballSize * 0.95}px` }}
       >
         <div className="w-full h-px bg-gradient-to-r from-transparent via-rose-gold/20 to-transparent" />
         <div className="w-full h-8 bg-gradient-to-b from-[rgba(212,160,122,0.03)] to-transparent" />
@@ -158,7 +157,7 @@ export default function BeetleScene({ onComplete }) {
 
       {/* Beetle image */}
       <AnimatedBeetle
-        x={ballPos.x + ballSize * 0.62}
+        x={ballPos.x - beetleSize * 0.55}
         y={ballPos.y + 8}
         size={beetleSize}
       />
@@ -168,8 +167,8 @@ export default function BeetleScene({ onComplete }) {
         <motion.div
           className="absolute z-30 pointer-events-none"
           style={{
-            left: ballPos.x + ballSize * 0.2,
-            top: ballPos.y - 55,
+            left: ballPos.x + ballSize * 0.25,
+            top: ballPos.y - 70,
           }}
           initial={{ opacity: 0, scale: 0.5, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -267,7 +266,6 @@ function AnimatedBeetle({ x, y, size }) {
           src="/assets/beetle.png"
           alt="beetle"
           className="w-full h-full object-contain"
-          style={{ transform: 'scaleX(-1)' }}
         />
       </motion.div>
     </div>
