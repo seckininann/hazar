@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trash2, Edit3, Check, X, Eye } from 'lucide-react'
+import { Trash2, Edit3, Check, X, Eye, Star } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 
 export default function PhotoTable() {
@@ -9,6 +9,15 @@ export default function PhotoTable() {
   const [editingId, setEditingId] = useState(null)
   const [editCaption, setEditCaption] = useState('')
   const [previewId, setPreviewId] = useState(null)
+  const [coverId, setCoverId] = useState(() => localStorage.getItem('hazar_hero_bg'))
+
+  const setAsCover = useCallback((photo) => {
+    const src = photo.src || photo.url || photo.dataUrl
+    if (!src) return
+    localStorage.setItem('hazar_hero_bg', src)
+    setCoverId(src)
+    if (navigator.vibrate) navigator.vibrate([20, 10, 40])
+  }, [])
 
   const startEdit = useCallback((photo) => {
     setEditingId(photo.id)
@@ -129,6 +138,13 @@ export default function PhotoTable() {
               <>
                 <button onClick={() => setPreviewId(photo.id)} className="p-1.5 rounded-lg glass hover:bg-white/5 text-white/30 hover:text-white/60 transition-all">
                   <Eye size={13} />
+                </button>
+                <button
+                  onClick={() => setAsCover(photo)}
+                  className="p-1.5 rounded-lg glass hover:bg-yellow-500/10 transition-all"
+                  style={{ color: coverId === (photo.src || photo.url || photo.dataUrl) ? 'rgba(251,191,36,0.8)' : 'rgba(255,255,255,0.25)' }}
+                  title="Kapak fotoğrafı yap">
+                  <Star size={13} fill={coverId === (photo.src || photo.url || photo.dataUrl) ? 'currentColor' : 'none'} />
                 </button>
                 <button onClick={() => startEdit(photo)} className="p-1.5 rounded-lg glass hover:bg-white/5 text-white/30 hover:text-white/60 transition-all">
                   <Edit3 size={13} />
