@@ -1,6 +1,9 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Play, Music2, SkipForward } from 'lucide-react'
+import {
+  Heart, Bookmark, Play, Pause, SkipForward,
+  Music2, ChevronLeft, ChevronRight, Star, X,
+} from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 import HeartEmitter from '../memory/HeartEmitter.jsx'
 
@@ -9,14 +12,14 @@ const LS_MESSAGES_KEY = 'hazar_love_messages'
 const LS_HERO_KEY     = 'hazar_hero_bg'
 
 const TRACKS = [
-  { src: '/audio/music1.mp3', title: 'Seninle',      label: 'ilk melodi' },
-  { src: '/audio/music2.mp3', title: 'Her Zaman',    label: 'ikinci melodi' },
-  { src: '/audio/music3.mp3', title: 'Sonsuzluk',    label: 'üçüncü melodi' },
+  { src: '/audio/music1.mp3', title: 'Seninle' },
+  { src: '/audio/music2.mp3', title: 'Her Zaman' },
+  { src: '/audio/music3.mp3', title: 'Sonsuzluk' },
 ]
 const DEFAULT_MESSAGES = [
-  { id: 'm1', text: 'Seninle her an güzel 🖤',     sub: 'her zaman, her yerde' },
+  { id: 'm1', text: 'Seninle her an güzel',    sub: 'her zaman, her yerde' },
   { id: 'm2', text: 'Dünyanın en tatlı insanısın', sub: 'sadece sen biliyorsun' },
-  { id: 'm3', text: 'Seni çok seviyorum',          sub: '— kalbimin derinliklerinden' },
+  { id: 'm3', text: 'Seni çok seviyorum',       sub: 'kalbimin derinliklerinden' },
 ]
 function loadMessages() {
   try {
@@ -27,52 +30,43 @@ function loadMessages() {
 }
 function getPhotoSrc(p) { return p.src || p.url || p.dataUrl || '' }
 
-// ─── CSS keyframe for swipe hint (no framer-motion loop needed) ────────────────
-const swipeHintStyle = `
-@keyframes swipeRight {
-  0%   { transform: translateX(0);    opacity: 0.7; }
-  40%  { transform: translateX(16px); opacity: 1;   }
-  70%  { transform: translateX(16px); opacity: 0.5; }
-  100% { transform: translateX(0);    opacity: 0.7; }
-}
+const CSS = `
 @keyframes eqBar {
   0%,100% { height: 30%; }
   50%      { height: 100%; }
+}
+@keyframes hintPulse {
+  0%,100% { opacity: 0.5; transform: translateX(0); }
+  50%     { opacity: 1;   transform: translateX(6px); }
 }
 `
 
 // ─── Scroll hint ──────────────────────────────────────────────────────────────
 function ScrollHint() {
   return (
-    <>
-      <style>{swipeHintStyle}</style>
-      <motion.div
-        className="absolute inset-0 z-50 flex flex-col items-center justify-end pb-32 pointer-events-none select-none"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.4 } }}
-        transition={{ delay: 1, duration: 0.6 }}
-      >
-        {/* Dim overlay */}
-        <div className="absolute inset-0 bg-black/25" />
-        <div className="relative z-10 flex flex-col items-center gap-4">
-          {/* Swipe hand */}
-          <div className="flex items-center gap-2"
-            style={{ animation: 'swipeRight 1.4s ease-in-out infinite' }}>
-            <span className="text-3xl">👆</span>
-            <div className="flex gap-1">
-              {[0,1,2].map(i => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/40"
-                  style={{ opacity: 1 - i * 0.3 }} />
-              ))}
-            </div>
-          </div>
-          {/* Label */}
-          <div className="px-5 py-2 rounded-full text-white/65 text-xs font-mono tracking-[0.25em]"
-            style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            sola kaydır →
-          </div>
-        </div>
-      </motion.div>
-    </>
+    <motion.div
+      className="absolute inset-0 z-50 flex items-end justify-center pb-28 pointer-events-none select-none"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }} transition={{ delay: 0.8, duration: 0.5 }}
+    >
+      <div className="flex items-center gap-2 px-5 py-2.5 rounded-2xl"
+        style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}>
+        <ChevronRight size={14} className="text-white/60" style={{ animation: 'hintPulse 1.2s ease-in-out infinite' }} />
+        <ChevronRight size={14} className="text-white/40" style={{ animation: 'hintPulse 1.2s 0.15s ease-in-out infinite' }} />
+        <span className="text-white/55 text-xs font-sans font-medium ml-1">Sola kaydır</span>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Avatar ring (small couple thumbnail in header) ──────────────────────────
+function AvatarRing() {
+  const src = localStorage.getItem(LS_HERO_KEY) || '/assets/couple.jpg'
+  return (
+    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
+      style={{ border: '2px solid rgba(212,160,122,0.5)', padding: 1 }}>
+      <img src={src} alt="" className="w-full h-full object-cover rounded-full" />
+    </div>
   )
 }
 
@@ -80,61 +74,60 @@ function ScrollHint() {
 function HeroSlide({ coverTitle }) {
   const heroBg = localStorage.getItem(LS_HERO_KEY) || '/assets/couple.jpg'
   return (
-    <div className="relative flex-shrink-0 h-full snap-start overflow-hidden"
-      style={{ width: '100vw' }}>
-      {/* BG photo */}
-      <img src={heroBg} alt="hero"
+    <div className="relative flex-shrink-0 h-full snap-start overflow-hidden" style={{ width: '100vw' }}>
+      <img src={heroBg} alt="kapak"
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ filter: 'brightness(0.6) saturate(1.1)' }} />
-      {/* Softer overlays */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/30 pointer-events-none" />
+        style={{ filter: 'brightness(0.55) saturate(1.1)' }} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/25 pointer-events-none" />
 
-      {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full px-8 text-center">
-        <motion.p className="text-white/40 text-xs font-mono tracking-[0.45em] uppercase mb-5"
-          initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+        <motion.p
+          className="text-white/45 text-xs font-sans font-medium tracking-widest uppercase mb-5"
+          initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           {coverTitle}
         </motion.p>
 
-        <motion.h1 className="font-display text-4xl md:text-5xl font-bold text-white leading-snug mb-4"
-          style={{ textShadow: '0 3px 24px rgba(0,0,0,0.5)' }}
-          initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.8 }}>
+        <motion.h1
+          className="font-display text-4xl md:text-5xl font-bold text-white leading-snug mb-3"
+          style={{ textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}
+          initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65, duration: 0.75 }}>
           Dünya yıkılsa da
           <br />
           <span style={{
-            background: 'linear-gradient(135deg,#f5d0a8 0%,#f0bcd0 50%,#ceb8f5 100%)',
+            background: 'linear-gradient(135deg,#f5d0a8 0%,#f0bcd0 55%,#ceb8f5 100%)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>
             biz yıkılmayız
           </span>
         </motion.h1>
 
-        <motion.div className="w-16 h-px mb-4"
-          style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)' }}
+        <motion.div className="w-14 h-px mb-4"
+          style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.28),transparent)' }}
           initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.1 }} />
 
-        <motion.p className="text-white/28 text-sm font-display italic mb-10"
+        <motion.p
+          className="text-white/28 text-sm font-display italic"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3 }}>
-          — seninle her şey anlamlı
+          seninle her şey anlamlı
         </motion.p>
-
       </div>
 
-      <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
     </div>
   )
 }
 
-// ─── Photo slide ──────────────────────────────────────────────────────────────
+// ─── Photo slide — Instagram card style ──────────────────────────────────────
 function PhotoSlide({ photo }) {
   const [liked, setLiked] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [tapHearts, setTapHearts] = useState([])
   const [flash, setFlash] = useState(false)
   const lastTap = useRef(0)
   const src = getPhotoSrc(photo)
 
-  const handleTap = useCallback((e) => {
+  const handleDoubleTap = useCallback((e) => {
     const now = Date.now()
     if (now - lastTap.current < 360) {
       setLiked(true)
@@ -143,12 +136,12 @@ function PhotoSlide({ photo }) {
       const cy = (e.changedTouches?.[0]?.clientY ?? e.clientY) - rect.top
       const id = now
       setTapHearts(h => [...h, { id, cx, cy }])
-      setTimeout(() => setTapHearts(h => h.filter(hh => hh.id !== id)), 1300)
+      setTimeout(() => setTapHearts(h => h.filter(x => x.id !== id)), 1200)
     }
     lastTap.current = now
   }, [])
 
-  const setAsHero = useCallback((e) => {
+  const setAsCover = useCallback((e) => {
     e.stopPropagation()
     if (!src) return
     localStorage.setItem(LS_HERO_KEY, src)
@@ -157,153 +150,179 @@ function PhotoSlide({ photo }) {
   }, [src])
 
   return (
-    <div className="relative flex-shrink-0 h-full snap-start overflow-hidden"
-      style={{ width: '100vw' }}>
-      {/* Full-screen photo */}
-      <div className="absolute inset-0 select-none" onClick={handleTap} onTouchEnd={handleTap}>
-        {src
-          ? <img src={src} alt={photo.caption || 'anı'} className="w-full h-full object-cover" draggable={false} />
-          : <div className="w-full h-full bg-white/5 flex items-center justify-center text-white/20 text-xs font-mono">fotoğraf yok</div>
-        }
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 pointer-events-none" />
+    <div className="flex-shrink-0 h-full snap-start flex flex-col items-center justify-center px-4"
+      style={{ width: '100vw', background: '#0c0b12' }}>
 
-        {/* Tap hearts */}
-        <AnimatePresence>
-          {tapHearts.map(h => (
-            <motion.div key={h.id}
-              className="absolute pointer-events-none text-5xl select-none"
-              style={{ left: h.cx - 28, top: h.cy - 28 }}
-              initial={{ scale: 0, opacity: 1 }}
-              animate={{ scale: [0, 1.5, 1], opacity: [1, 1, 0], y: -70 }}
-              exit={{ opacity: 0 }} transition={{ duration: 1.1 }}>
-              ❤️
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {liked && (
-            <motion.div className="absolute inset-0 flex items-center justify-center pointer-events-none"
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: [0,1,1,0], scale: [0,1.4,1.1,0.8] }}
-              transition={{ duration: 0.8 }}>
-              <span className="text-8xl drop-shadow-2xl">❤️</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {photo.caption && (
-        <div className="absolute bottom-20 inset-x-0 px-7 pointer-events-none">
-          <p className="text-white/85 font-display italic text-xl leading-relaxed text-center"
-            style={{ textShadow: '0 2px 14px rgba(0,0,0,0.9)' }}>
-            {photo.caption}
-          </p>
+      {/* Card */}
+      <motion.div
+        className="w-full max-w-sm rounded-3xl overflow-hidden"
+        style={{ background: '#161520', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+      >
+        {/* Post header */}
+        <div className="flex items-center gap-3 px-4 py-3">
+          <AvatarRing />
+          <div className="flex-1 min-w-0">
+            <p className="text-white/90 text-sm font-semibold leading-none mb-0.5">Hazar</p>
+            {photo.date && <p className="text-white/35 text-xs font-sans">{photo.date}</p>}
+          </div>
+          <motion.button
+            className="p-1.5 rounded-full text-white/25 hover:text-white/60 transition-colors"
+            onClick={setAsCover} whileTap={{ scale: 0.9 }}
+            title="Kapak fotoğrafı yap">
+            <Star size={15} fill={flash ? 'currentColor' : 'none'}
+              style={{ color: flash ? 'rgba(251,191,36,0.85)' : undefined }} />
+          </motion.button>
         </div>
-      )}
 
-      {/* Bottom bar */}
-      <div className="absolute bottom-5 inset-x-0 flex items-center justify-between px-6 z-10">
-        <motion.button className="text-2xl select-none"
-          onClick={() => setLiked(l => !l)} whileTap={{ scale: 1.45 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 10 }}>
-          {liked ? '❤️' : '🤍'}
-        </motion.button>
+        {/* Photo */}
+        <div
+          className="relative overflow-hidden cursor-pointer select-none"
+          style={{ aspectRatio: '1/1' }}
+          onClick={handleDoubleTap} onTouchEnd={handleDoubleTap}
+        >
+          {src
+            ? <img src={src} alt={photo.caption || 'anı'} className="w-full h-full object-cover" draggable={false} />
+            : <div className="w-full h-full bg-white/4 flex items-center justify-center">
+                <span className="text-white/20 text-sm font-sans">Fotoğraf yok</span>
+              </div>
+          }
 
-        <AnimatePresence>
-          {flash && (
-            <motion.span className="text-xs font-mono text-rose-gold/75"
-              initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              ✦ Kapak olarak ayarlandı
-            </motion.span>
-          )}
-        </AnimatePresence>
+          {/* Tap hearts */}
+          <AnimatePresence>
+            {tapHearts.map(h => (
+              <motion.div key={h.id}
+                className="absolute pointer-events-none select-none"
+                style={{ left: h.cx - 30, top: h.cy - 30 }}
+                initial={{ scale: 0, opacity: 1 }}
+                animate={{ scale: [0, 1.6, 1.2], opacity: [1, 1, 0], y: -60 }}
+                transition={{ duration: 1 }}>
+                <Heart size={60} fill="#e84393" color="#e84393" />
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
-        <motion.button
-          className="px-3 py-1.5 rounded-full text-xs font-mono text-white/38"
-          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)' }}
-          onClick={setAsHero} whileTap={{ scale: 0.93 }}>
-          ✦ kapak yap
-        </motion.button>
-      </div>
-
-      {photo.date && (
-        <div className="absolute top-5 right-5 z-10 pointer-events-none">
-          <span className="text-white/28 text-xs font-mono">{photo.date}</span>
+          <AnimatePresence>
+            {liked && tapHearts.length > 0 && (
+              <motion.div className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: [0,1,1,0], scale: [0,1.3,1,0.8] }}
+                transition={{ duration: 0.7 }}>
+                <Heart size={90} fill="#e84393" color="#e84393" style={{ filter: 'drop-shadow(0 0 20px #e84393aa)' }} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      )}
+
+        {/* Action bar + caption */}
+        <div className="px-4 pt-3 pb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <motion.button onClick={() => setLiked(l => !l)} whileTap={{ scale: 1.3 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 12 }}>
+                <Heart size={24}
+                  fill={liked ? '#e84393' : 'none'}
+                  color={liked ? '#e84393' : 'rgba(255,255,255,0.7)'} />
+              </motion.button>
+            </div>
+            <motion.button onClick={() => setSaved(s => !s)} whileTap={{ scale: 1.2 }}>
+              <Bookmark size={22}
+                fill={saved ? 'rgba(212,160,122,0.9)' : 'none'}
+                color={saved ? 'rgba(212,160,122,0.9)' : 'rgba(255,255,255,0.45)'} />
+            </motion.button>
+          </div>
+
+          {photo.caption && (
+            <p className="text-white/75 text-sm font-sans leading-relaxed">
+              <span className="text-white/90 font-semibold mr-1.5">hazar</span>
+              {photo.caption}
+            </p>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Set cover flash */}
+      <AnimatePresence>
+        {flash && (
+          <motion.p className="mt-3 text-amber-400/70 text-xs font-sans"
+            initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            Kapak fotoğrafı ayarlandı
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
-// ─── Love slide ───────────────────────────────────────────────────────────────
+// ─── Love slide — clean quote card ───────────────────────────────────────────
 function LoveSlide({ msg }) {
   return (
-    <div className="relative flex-shrink-0 h-full snap-start flex items-center justify-center"
-      style={{ width: '100vw', background: 'linear-gradient(160deg,#07060e 0%,#0d0812 100%)' }}>
-      {/* Static soft blobs — no animation to prevent freezing */}
-      <div className="absolute w-80 h-80 rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle,rgba(212,160,122,0.09),transparent 70%)', top: '15%', left: '10%' }} />
-      <div className="absolute w-64 h-64 rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle,rgba(200,180,232,0.08),transparent 70%)', bottom: '15%', right: '8%' }} />
+    <div className="flex-shrink-0 h-full snap-start flex flex-col items-center justify-center px-5"
+      style={{ width: '100vw', background: '#0c0b12' }}>
 
-      <div className="relative z-10 px-10 text-center max-w-sm">
-        <motion.div className="text-4xl mb-7 select-none"
-          animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}>
-          🌹
-        </motion.div>
-        <p className="font-display italic text-white/82 text-2xl md:text-3xl leading-relaxed mb-6"
-          style={{ textShadow: '0 0 40px rgba(212,160,122,0.12)' }}>
+      <motion.div
+        className="w-full max-w-sm rounded-3xl px-8 py-12 text-center"
+        style={{ background: '#161520', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}
+        initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}
+      >
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center mx-auto mb-6"
+          style={{ background: 'linear-gradient(135deg,rgba(212,160,122,0.18),rgba(200,180,232,0.12))', border: '1px solid rgba(212,160,122,0.2)' }}>
+          <Heart size={18} fill="rgba(212,160,122,0.8)" color="rgba(212,160,122,0.8)" />
+        </div>
+
+        <p className="font-display italic text-white/85 text-2xl leading-relaxed mb-5"
+          style={{ textShadow: '0 0 30px rgba(212,160,122,0.1)' }}>
           "{msg.text}"
         </p>
-        <div className="w-12 h-px mx-auto mb-4"
-          style={{ background: 'linear-gradient(90deg,transparent,rgba(212,160,122,0.45),transparent)' }} />
-        <p className="text-rose-gold/38 text-xs font-mono tracking-[0.4em] uppercase">{msg.sub}</p>
-      </div>
+
+        <div className="w-10 h-px mx-auto mb-4"
+          style={{ background: 'linear-gradient(90deg,transparent,rgba(212,160,122,0.4),transparent)' }} />
+
+        <p className="text-white/35 text-xs font-sans tracking-widest uppercase">{msg.sub}</p>
+      </motion.div>
     </div>
   )
 }
 
-// ─── Floating music control ───────────────────────────────────────────────────
-function MusicControl({ audioRef, playing, trackEnded, currentTrack, onToggle, onNext }) {
+// ─── Floating music pill — Instagram sticker style ───────────────────────────
+function MusicControl({ playing, trackEnded, currentTrack, onToggle, onNext }) {
   const [expanded, setExpanded] = useState(false)
   const track = TRACKS[currentTrack]
 
   return (
-    <div className="absolute bottom-16 right-4 z-40 flex flex-col items-end gap-2">
-      {/* Track list popup */}
+    <div className="absolute bottom-14 right-4 z-40 flex flex-col items-end gap-2">
       <AnimatePresence>
         {expanded && (
           <motion.div
-            className="flex flex-col gap-1.5 items-end"
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            className="rounded-2xl overflow-hidden flex flex-col"
+            style={{ background: 'rgba(12,11,18,0.92)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)', minWidth: 140 }}
+            initial={{ opacity: 0, y: 6, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
-            transition={{ duration: 0.18 }}
+            exit={{ opacity: 0, y: 6, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
           >
+            <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
+              <span className="text-white/40 text-xs font-sans font-medium">Melodiler</span>
+              <button onClick={() => setExpanded(false)} className="text-white/25 hover:text-white/60 transition-colors">
+                <X size={12} />
+              </button>
+            </div>
             {TRACKS.map((t, i) => (
               <button key={i}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono transition-all"
-                style={currentTrack === i ? {
-                  background: 'rgba(212,160,122,0.18)',
-                  border: '1px solid rgba(212,160,122,0.3)',
-                  color: 'rgba(212,160,122,0.9)',
-                } : {
-                  background: 'rgba(0,0,0,0.5)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: 'rgba(255,255,255,0.45)',
-                  backdropFilter: 'blur(12px)',
-                }}
+                className="flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+                style={{ borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined }}
                 onClick={() => { onNext(i); setExpanded(false) }}>
                 {currentTrack === i && playing
-                  ? <div className="flex items-end gap-0.5 h-3 mr-0.5">
+                  ? <div className="flex items-end gap-0.5 h-3 w-3">
                       {[1,2,3].map(j => (
                         <div key={j} className="w-0.5 rounded-full bg-rose-gold/85"
                           style={{ animation: `eqBar 0.7s ${j*0.15}s ease-in-out infinite` }} />
                       ))}
                     </div>
-                  : <Music2 size={10} />}
-                {t.title}
+                  : <Music2 size={12} style={{ color: currentTrack === i ? 'rgba(212,160,122,0.8)' : 'rgba(255,255,255,0.3)' }} />}
+                <span className={`text-xs font-sans ${currentTrack === i ? 'text-white/80 font-medium' : 'text-white/40'}`}>
+                  {t.title}
+                </span>
               </button>
             ))}
           </motion.div>
@@ -311,33 +330,33 @@ function MusicControl({ audioRef, playing, trackEnded, currentTrack, onToggle, o
       </AnimatePresence>
 
       {/* Main pill */}
-      <div className="flex items-center gap-1.5 rounded-full px-2 py-1.5"
-        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)' }}>
-        {/* Play/pause */}
+      <div className="flex items-center gap-2 px-2.5 py-2 rounded-2xl"
+        style={{ background: 'rgba(12,11,18,0.88)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}>
+        {/* Play/pause button */}
         <motion.button
-          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: playing ? 'rgba(212,160,122,0.2)' : 'rgba(255,255,255,0.07)' }}
-          onClick={onToggle} whileTap={{ scale: 0.88 }}>
+          className="w-7 h-7 rounded-xl flex items-center justify-center"
+          style={{ background: playing ? 'rgba(212,160,122,0.18)' : 'rgba(255,255,255,0.07)' }}
+          onClick={onToggle} whileTap={{ scale: 0.85 }}>
           {playing
-            ? <div className="flex items-end gap-0.5 h-3">
+            ? <div className="flex items-end gap-0.5 h-3.5">
                 {[1,2,3].map(j => (
                   <div key={j} className="w-0.5 rounded-full bg-rose-gold/85"
                     style={{ animation: `eqBar 0.65s ${j*0.15}s ease-in-out infinite` }} />
                 ))}
               </div>
-            : <Play size={10} style={{ color: 'rgba(255,255,255,0.55)', marginLeft: 1 }} />}
+            : <Play size={11} style={{ color: 'rgba(255,255,255,0.6)', marginLeft: 1 }} />}
         </motion.button>
 
-        {/* Track name — tap to expand */}
-        <button className="text-[10px] font-mono text-white/38 max-w-[72px] truncate"
+        {/* Track name */}
+        <button className="text-xs font-sans text-white/45 hover:text-white/70 transition-colors max-w-[70px] truncate"
           onClick={() => setExpanded(e => !e)}>
-          {trackEnded ? '♪ bitti' : track.title}
+          {trackEnded ? 'Bitti' : track.title}
         </button>
 
-        {/* Next */}
-        <button className="text-white/22 hover:text-white/55 transition-colors"
+        {/* Skip */}
+        <button className="text-white/25 hover:text-white/55 transition-colors"
           onClick={() => onNext((currentTrack + 1) % TRACKS.length)}>
-          <SkipForward size={10} />
+          <SkipForward size={12} />
         </button>
       </div>
     </div>
@@ -347,13 +366,15 @@ function MusicControl({ audioRef, playing, trackEnded, currentTrack, onToggle, o
 // ─── Slide dots ───────────────────────────────────────────────────────────────
 function SlideDots({ total, current }) {
   if (total <= 1) return null
+  const MAX = 9
+  const dots = total > MAX ? MAX : total
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-1.5 pointer-events-none">
-      {Array.from({ length: total }).map((_, i) => (
+    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex gap-1.5 pointer-events-none">
+      {Array.from({ length: dots }).map((_, i) => (
         <div key={i} className="rounded-full transition-all duration-300"
           style={{
-            width: i === current ? 18 : 5, height: 5,
-            background: i === current ? 'rgba(212,160,122,0.82)' : 'rgba(255,255,255,0.22)',
+            width: i === current ? 16 : 4, height: 4,
+            background: i === current ? 'rgba(212,160,122,0.85)' : 'rgba(255,255,255,0.2)',
           }} />
       ))}
     </div>
@@ -376,7 +397,6 @@ export default function MemoryUniverse() {
   const coverTitle = localStorage.getItem(LS_TITLE_KEY) || 'Özelimiz'
   const LOVE_MESSAGES = loadMessages()
 
-  // Build slides
   const slides = []
   photos.forEach((photo, i) => {
     slides.push({ type: 'photo', data: photo, key: `p-${photo.id}` })
@@ -389,56 +409,45 @@ export default function MemoryUniverse() {
     LOVE_MESSAGES.forEach(msg => slides.push({ type: 'love', data: msg, key: `l-${msg.id}` }))
   const totalSlides = 1 + slides.length
 
-  // Auto-hide hint
   useEffect(() => {
     const t = setTimeout(() => setShowHint(false), 4000)
     return () => clearTimeout(t)
   }, [])
 
-  // Track scroll position
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
     const handler = () => {
-      const idx = Math.round(el.scrollLeft / window.innerWidth)
-      setCurrentSlide(idx)
+      setCurrentSlide(Math.round(el.scrollLeft / window.innerWidth))
       setShowHint(false)
     }
     el.addEventListener('scroll', handler, { passive: true })
     return () => el.removeEventListener('scroll', handler)
   }, [])
 
-  // Audio setup — auto-play after 2.5s on first user interaction
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
     const onEnded = () => { setMusicPlaying(false); setTrackEnded(true) }
     audio.addEventListener('ended', onEnded)
-
-    // Try auto-play after 2.5s
     const tryPlay = () => {
       if (interacted.current) return
       audio.play().then(() => { setMusicPlaying(true); interacted.current = true }).catch(() => {})
     }
     const t = setTimeout(tryPlay, 2500)
-
-    // Also attempt on first user touch (for mobile)
-    const onFirstTouch = () => {
+    const onFirst = () => {
       if (interacted.current) return
       interacted.current = true
       clearTimeout(t)
       audio.play().then(() => setMusicPlaying(true)).catch(() => {})
-      document.removeEventListener('touchstart', onFirstTouch)
-      document.removeEventListener('click', onFirstTouch)
     }
-    document.addEventListener('touchstart', onFirstTouch, { once: true })
-    document.addEventListener('click', onFirstTouch, { once: true })
-
+    document.addEventListener('touchstart', onFirst, { once: true })
+    document.addEventListener('click', onFirst, { once: true })
     return () => {
       audio.removeEventListener('ended', onEnded)
       clearTimeout(t)
-      document.removeEventListener('touchstart', onFirstTouch)
-      document.removeEventListener('click', onFirstTouch)
+      document.removeEventListener('touchstart', onFirst)
+      document.removeEventListener('click', onFirst)
     }
   }, [])
 
@@ -446,9 +455,8 @@ export default function MemoryUniverse() {
     const audio = audioRef.current
     if (!audio) return
     interacted.current = true
-    if (musicPlaying) {
-      audio.pause(); setMusicPlaying(false)
-    } else {
+    if (musicPlaying) { audio.pause(); setMusicPlaying(false) }
+    else {
       if (trackEnded) { audio.currentTime = 0; setTrackEnded(false) }
       audio.play().then(() => setMusicPlaying(true)).catch(() => {})
     }
@@ -457,10 +465,8 @@ export default function MemoryUniverse() {
   const selectTrack = useCallback((i) => {
     const audio = audioRef.current
     if (!audio) return
-    setCurrentTrack(i)
-    setTrackEnded(false)
-    audio.src = TRACKS[i].src
-    audio.load()
+    setCurrentTrack(i); setTrackEnded(false)
+    audio.src = TRACKS[i].src; audio.load()
     if (musicPlaying) audio.play().catch(() => {})
   }, [musicPlaying])
 
@@ -471,56 +477,45 @@ export default function MemoryUniverse() {
   }, [dispatch])
 
   return (
-    <div className="relative w-full h-full" style={{ background: '#06050c' }}>
-      <style>{swipeHintStyle}</style>
+    <div className="relative w-full h-full" style={{ background: '#0c0b12' }}>
+      <style>{CSS}</style>
       <audio ref={audioRef} src={TRACKS[0].src} preload="metadata" />
 
-      {/* Horizontal snap container */}
-      <div
-        ref={scrollRef}
-        className="w-full h-full flex"
+      {/* Snap scroll container */}
+      <div ref={scrollRef} className="w-full h-full flex"
         style={{
-          overflowX: 'scroll',
-          overflowY: 'hidden',
-          scrollSnapType: 'x mandatory',
-          scrollBehavior: 'smooth',
+          overflowX: 'scroll', overflowY: 'hidden',
+          scrollSnapType: 'x mandatory', scrollBehavior: 'smooth',
           WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
+          scrollbarWidth: 'none', msOverflowStyle: 'none',
           touchAction: 'pan-x',
-        }}
-      >
+        }}>
         <HeroSlide coverTitle={coverTitle} />
-        {slides.map(slide =>
-          slide.type === 'photo'
-            ? <PhotoSlide key={slide.key} photo={slide.data} />
-            : <LoveSlide key={slide.key} msg={slide.data} />
+        {slides.map(s =>
+          s.type === 'photo'
+            ? <PhotoSlide key={s.key} photo={s.data} />
+            : <LoveSlide key={s.key} msg={s.data} />
         )}
       </div>
 
-      {/* Scroll hint overlay */}
-      <AnimatePresence>
-        {showHint && <ScrollHint />}
-      </AnimatePresence>
+      <AnimatePresence>{showHint && <ScrollHint />}</AnimatePresence>
 
-      {/* Slide dots */}
       <SlideDots total={totalSlides} current={currentSlide} />
 
-      {/* Logout */}
+      {/* Top-left back button */}
       <motion.button
-        className="absolute top-4 left-4 z-40 text-white/28 text-xs font-mono tracking-wider px-3 py-1.5 rounded-xl"
-        style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)' }}
+        className="absolute top-4 left-4 z-40 flex items-center gap-1.5 px-3 py-2 rounded-2xl"
+        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)' }}
         onClick={handleLogout}
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}
-        whileTap={{ scale: 0.93 }}>
-        ← çıkış
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
+        whileTap={{ scale: 0.92 }}>
+        <ChevronLeft size={14} className="text-white/50" />
+        <span className="text-white/45 text-xs font-sans font-medium">Çıkış</span>
       </motion.button>
 
-      {/* Floating music control */}
       <MusicControl
-        audioRef={audioRef} playing={musicPlaying} trackEnded={trackEnded}
-        currentTrack={currentTrack} onToggle={toggleMusic}
-        onNext={selectTrack} />
+        playing={musicPlaying} trackEnded={trackEnded}
+        currentTrack={currentTrack} onToggle={toggleMusic} onNext={selectTrack} />
 
       <HeartEmitter />
     </div>
