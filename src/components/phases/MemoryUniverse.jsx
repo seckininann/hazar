@@ -415,7 +415,11 @@ function NavDots({ total, col, row }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function MemoryUniverse() {
   const { state, dispatch } = useAppState()
-  const photos = state.photos || []
+  const rawPhotos = state.photos || []
+  // Always have at least the hero photo as a swipeable slide
+  const photos = rawPhotos.length > 0 ? rawPhotos : [
+    { id: 'default-0', src: '/assets/couple.jpg', caption: 'Dünya yıkılsa da biz ayrılamayız', date: '' }
+  ]
   const MSGS = useMemo(loadMsgs, [])
 
   // Use refs to avoid stale closures in touch handlers
@@ -494,17 +498,17 @@ export default function MemoryUniverse() {
   const navigate = useCallback((dc, dr) => {
     if (busyRef.current) return
     busyRef.current = true
-    setTimeout(() => { busyRef.current = false }, 400)
+    setTimeout(() => { busyRef.current = false }, 380)
 
     const curCol = colRef.current
     const curRow = rowRef.current
 
     if (dr !== 0) {
-      if (curCol === 0) return
+      // Allow love row from any slide including hero (col 0)
       const nr = Math.max(0, Math.min(1, curRow + dr))
       if (nr === curRow) return
       rowRef.current = nr
-      if (nr === 1) setLoveIdx(curCol - 1)
+      setLoveIdx(Math.max(0, curCol - 1))
       setRow(nr)
       return
     }
@@ -517,44 +521,39 @@ export default function MemoryUniverse() {
     }
   }, [])
 
-  // Unified pointer+touch swipe — works on both desktop & mobile
-  useEffect(() => {
-    const MUSIC_H = 90
-    const THR = 38
+  // Swipe handlers — React synthetic events on container
+  const handleTouchStart = useCallback((e) => {
+    const t = e.touches[0]
+    if (t.clientY > window.innerHeight - 90) return
+    tsRef.current = { x: t.clientX, y: t.clientY }
+  }, [])
 
-    const onDown = (e) => {
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX
-      if (clientY > window.innerHeight - MUSIC_H) return
-      tsRef.current = { x: clientX, y: clientY }
-      // Block iOS scroll/bounce stealing the swipe gesture
-      if (e.cancelable && e.touches) e.preventDefault()
-    }
-    const onUp = (e) => {
-      if (!tsRef.current) return
-      const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX
-      const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY
-      const dx = clientX - tsRef.current.x
-      const dy = clientY - tsRef.current.y
-      tsRef.current = null
-      const ax = Math.abs(dx), ay = Math.abs(dy)
-      if (ax < THR && ay < THR) return
-      if (ax >= ay) { dx < 0 ? navigate(1, 0) : navigate(-1, 0) }
-      else          { dy < 0 ? navigate(0, 1) : navigate(0, -1) }
-    }
+  const handleTouchEnd = useCallback((e) => {
+    if (!tsRef.current) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - tsRef.current.x
+    const dy = t.clientY - tsRef.current.y
+    tsRef.current = null
+    const ax = Math.abs(dx), ay = Math.abs(dy)
+    if (ax < 40 && ay < 40) return
+    if (ax >= ay) { dx < 0 ? navigate(1, 0) : navigate(-1, 0) }
+    else          { dy < 0 ? navigate(0, 1) : navigate(0, -1) }
+  }, [navigate])
 
-    // capture:true = fires BEFORE child stopPropagation (fixes framer-motion interference)
-    // passive:false = allows preventDefault to block iOS pull-to-refresh / bounce scroll
-    document.addEventListener('touchstart', onDown, { passive: false, capture: true })
-    document.addEventListener('touchend',   onUp,   { passive: true,  capture: true })
-    document.addEventListener('mousedown',  onDown, { capture: true })
-    document.addEventListener('mouseup',    onUp,   { capture: true })
-    return () => {
-      document.removeEventListener('touchstart', onDown, { capture: true })
-      document.removeEventListener('touchend',   onUp,   { capture: true })
-      document.removeEventListener('mousedown',  onDown, { capture: true })
-      document.removeEventListener('mouseup',    onUp,   { capture: true })
-    }
+  const handleMouseDown = useCallback((e) => {
+    if (e.clientY > window.innerHeight - 90) return
+    tsRef.current = { x: e.clientX, y: e.clientY }
+  }, [])
+
+  const handleMouseUp = useCallback((e) => {
+    if (!tsRef.current) return
+    const dx = e.clientX - tsRef.current.x
+    const dy = e.clientY - tsRef.current.y
+    tsRef.current = null
+    const ax = Math.abs(dx), ay = Math.abs(dy)
+    if (ax < 40 && ay < 40) return
+    if (ax >= ay) { dx < 0 ? navigate(1, 0) : navigate(-1, 0) }
+    else          { dy < 0 ? navigate(0, 1) : navigate(0, -1) }
   }, [navigate])
 
   const logout = useCallback(() => {
@@ -571,7 +570,13 @@ export default function MemoryUniverse() {
   }, [col, totalCols])
 
   return (
-    <div style={{ position:'relative', width:'100%', height:'100%', overflow:'hidden', background:'#0c0b12', touchAction:'none' }}>
+    <div
+      style={{ position:'relative', width:'100%', height:'100%', overflow:'hidden', background:'#0c0b12', touchAction:'none', userSelect:'none' }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+    >
       <style>{CSS}</style>
       <audio ref={audioRef} src={TRACKS[0].src} preload="metadata" />
 
