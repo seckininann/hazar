@@ -39,6 +39,10 @@ const CSS = `
   0%,100% { opacity: 0.5; transform: translateX(0); }
   50%     { opacity: 1;   transform: translateX(6px); }
 }
+@keyframes tickerScroll {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(110vw); }
+}
 `
 
 // ─── Scroll hint ──────────────────────────────────────────────────────────────
@@ -71,49 +75,77 @@ function AvatarRing() {
 }
 
 // ─── Hero slide ───────────────────────────────────────────────────────────────
+const TICKER_WORDS = [
+  'her zaman böyle mutlu olalım', '♡', 'seninle her an güzel', '♡',
+  'bir ömrü yeter', '♡', 'her zaman böyle mutlu olalım', '♡',
+]
 function HeroSlide({ coverTitle }) {
   const heroBg = localStorage.getItem(LS_HERO_KEY) || '/assets/couple.jpg'
   return (
     <div className="relative flex-shrink-0 h-full snap-start overflow-hidden" style={{ width: '100vw' }}>
+      {/* Photo */}
       <img src={heroBg} alt="kapak"
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ filter: 'brightness(0.55) saturate(1.1)' }} />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/25 pointer-events-none" />
+        style={{ filter: 'brightness(0.5) saturate(1.2)' }} />
 
-      <div className="relative z-10 flex flex-col items-center justify-center h-full px-8 text-center">
+      {/* Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/35 pointer-events-none" />
+
+      {/* Main text */}
+      <div className="relative z-10 flex flex-col items-center justify-center h-full px-8 text-center pb-24">
         <motion.p
-          className="text-white/45 text-xs font-sans font-medium tracking-widest uppercase mb-5"
-          initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          className="text-white/38 text-[11px] font-sans font-medium tracking-[0.22em] uppercase mb-6"
+          initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
           {coverTitle}
         </motion.p>
 
         <motion.h1
-          className="font-display text-4xl md:text-5xl font-bold text-white leading-snug mb-3"
-          style={{ textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}
-          initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.65, duration: 0.75 }}>
+          className="font-display font-bold text-white leading-tight mb-5"
+          style={{ fontSize: 'clamp(1.9rem,7.5vw,2.8rem)', textShadow: '0 4px 36px rgba(0,0,0,0.75)' }}
+          initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7, duration: 0.85, ease: 'easeOut' }}>
           Dünya yıkılsa da
           <br />
           <span style={{
-            background: 'linear-gradient(135deg,#f5d0a8 0%,#f0bcd0 55%,#ceb8f5 100%)',
+            background: 'linear-gradient(135deg,#f9d4a8 0%,#f4b8cc 50%,#d4b4f5 100%)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>
-            biz yıkılmayız
+            biz ayrılamayız
           </span>
         </motion.h1>
 
-        <motion.div className="w-14 h-px mb-4"
-          style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.28),transparent)' }}
-          initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.1 }} />
-
-        <motion.p
-          className="text-white/28 text-sm font-display italic"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3 }}>
-          seninle her şey anlamlı
-        </motion.p>
+        <motion.div className="w-16 h-px"
+          style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)' }}
+          initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.4 }} />
       </div>
 
-      <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+      {/* Romantic ticker — two offset copies for seamless loop */}
+      <div className="absolute z-20 overflow-hidden pointer-events-none w-full"
+        style={{ bottom: 108 }}>
+        {[0, 1].map(i => (
+          <div key={i} className="absolute top-0 flex items-center whitespace-nowrap"
+            style={{
+              gap: 32,
+              animation: `tickerScroll ${20 + i * 10}s ${i * 10}s linear infinite`,
+            }}>
+            {TICKER_WORDS.map((w, j) => (
+              <span key={j}
+                className="font-display italic select-none"
+                style={{
+                  fontSize: 12,
+                  letterSpacing: '0.06em',
+                  color: w === '♡'
+                    ? 'rgba(244,184,204,0.55)'
+                    : 'rgba(255,255,255,0.3)',
+                }}>
+                {w}
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
     </div>
   )
 }
@@ -123,7 +155,6 @@ function PhotoSlide({ photo }) {
   const [liked, setLiked] = useState(false)
   const [saved, setSaved] = useState(false)
   const [tapHearts, setTapHearts] = useState([])
-  const [flash, setFlash] = useState(false)
   const lastTap = useRef(0)
   const src = getPhotoSrc(photo)
 
@@ -140,14 +171,6 @@ function PhotoSlide({ photo }) {
     }
     lastTap.current = now
   }, [])
-
-  const setAsCover = useCallback((e) => {
-    e.stopPropagation()
-    if (!src) return
-    localStorage.setItem(LS_HERO_KEY, src)
-    setFlash(true)
-    setTimeout(() => setFlash(false), 1800)
-  }, [src])
 
   return (
     <div className="flex-shrink-0 h-full snap-start flex flex-col items-center justify-center px-4 pb-24"
@@ -166,13 +189,6 @@ function PhotoSlide({ photo }) {
             <p className="text-white/90 text-sm font-semibold leading-none mb-0.5">Hazar</p>
             {photo.date && <p className="text-white/35 text-xs font-sans">{photo.date}</p>}
           </div>
-          <motion.button
-            className="p-1.5 rounded-full text-white/25 hover:text-white/60 transition-colors"
-            onClick={setAsCover} whileTap={{ scale: 0.9 }}
-            title="Kapak fotoğrafı yap">
-            <Star size={15} fill={flash ? 'currentColor' : 'none'}
-              style={{ color: flash ? 'rgba(251,191,36,0.85)' : undefined }} />
-          </motion.button>
         </div>
 
         {/* Photo */}
@@ -241,15 +257,6 @@ function PhotoSlide({ photo }) {
         </div>
       </motion.div>
 
-      {/* Set cover flash */}
-      <AnimatePresence>
-        {flash && (
-          <motion.p className="mt-3 text-amber-400/70 text-xs font-sans"
-            initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            Kapak fotoğrafı ayarlandı
-          </motion.p>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
