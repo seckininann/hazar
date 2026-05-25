@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Upload, Image, BarChart2, Shield, Eye, EyeOff, Lock, AlertTriangle, Scan, Settings, CheckCircle2, XCircle, KeyRound, Type, MessageSquareHeart, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Upload, Image, BarChart2, Shield, Eye, EyeOff, Lock, AlertTriangle, Scan, Settings, CheckCircle2, XCircle, KeyRound, Type, MessageSquareHeart, RefreshCw, Cloud, Database } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
+import { isFirebaseConfigured } from '../../lib/firebase.js'
 import DropZone from '../admin/DropZone.jsx'
 import PhotoTable from '../admin/PhotoTable.jsx'
 import TelemetryCharts from '../admin/TelemetryCharts.jsx'
@@ -310,6 +311,41 @@ function AdminSettings() {
 
   return (
     <div className="space-y-4">
+      {/* Firebase status */}
+      <Card accent={isFirebaseConfigured ? '52,211,153' : '212,160,122'}>
+        <div className="flex items-center gap-2.5 mb-3">
+          <Cloud size={14} style={{ color: isFirebaseConfigured ? 'rgba(52,211,153,0.7)' : 'rgba(212,160,122,0.6)' }} />
+          <span className="text-white/50 text-xs font-sans font-semibold tracking-widest uppercase">Firebase</span>
+          <span className="ml-auto text-[10px] font-sans px-2 py-0.5 rounded-full"
+            style={isFirebaseConfigured
+              ? { background: 'rgba(52,211,153,0.1)', color: 'rgba(52,211,153,0.8)', border: '1px solid rgba(52,211,153,0.2)' }
+              : { background: 'rgba(251,146,60,0.1)', color: 'rgba(251,146,60,0.8)', border: '1px solid rgba(251,146,60,0.2)' }}>
+            {isFirebaseConfigured ? 'Bağlı' : 'Kurulmadı'}
+          </span>
+        </div>
+        {isFirebaseConfigured
+          ? <p className="text-white/35 text-xs font-sans leading-relaxed">Tüm fotoğraflar buluta senkronize ediliyor. Her cihazdan görünür.</p>
+          : <div className="space-y-2.5">
+              <p className="text-white/40 text-xs font-sans leading-relaxed">Fotoğrafları tüm cihazlarda görmek için Firebase kur:</p>
+              <ol className="text-white/30 text-xs font-sans space-y-1.5 list-decimal list-inside">
+                <li><a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" className="text-amber-400/60 underline">console.firebase.google.com</a> → Yeni proje</li>
+                <li>Firestore Database → Test mode ile başlat</li>
+                <li>Storage → Test mode ile başlat</li>
+                <li>Proje Ayarları (&gt;) → Web uygulaması ekle → Config al</li>
+                <li>Vercel Dashboard → Environment Variables ekle:</li>
+              </ol>
+              <div className="rounded-xl p-3 mt-2 font-mono text-[10px] text-white/30 space-y-0.5 leading-relaxed"
+                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div>VITE_FB_API_KEY=AIza...</div>
+                <div>VITE_FB_AUTH_DOMAIN=proje.firebaseapp.com</div>
+                <div>VITE_FB_PROJECT_ID=proje-adi</div>
+                <div>VITE_FB_STORAGE_BUCKET=proje.appspot.com</div>
+                <div>VITE_FB_MESSAGING_SENDER_ID=123...</div>
+                <div>VITE_FB_APP_ID=1:123...</div>
+              </div>
+            </div>}
+      </Card>
+
       {/* Cover title */}
       <Card>
         <div className="flex items-center gap-2.5 mb-4">

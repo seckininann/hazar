@@ -150,7 +150,7 @@ function PhotoSlide({ photo }) {
   }, [src])
 
   return (
-    <div className="flex-shrink-0 h-full snap-start flex flex-col items-center justify-center px-4"
+    <div className="flex-shrink-0 h-full snap-start flex flex-col items-center justify-center px-4 pb-24"
       style={{ width: '100vw', background: '#0c0b12' }}>
 
       {/* Card */}
@@ -257,7 +257,7 @@ function PhotoSlide({ photo }) {
 // ─── Love slide — clean quote card ───────────────────────────────────────────
 function LoveSlide({ msg }) {
   return (
-    <div className="flex-shrink-0 h-full snap-start flex flex-col items-center justify-center px-5"
+    <div className="flex-shrink-0 h-full snap-start flex flex-col items-center justify-center px-5 pb-24"
       style={{ width: '100vw', background: '#0c0b12' }}>
 
       <motion.div
@@ -284,80 +284,69 @@ function LoveSlide({ msg }) {
   )
 }
 
-// ─── Music control — Spotify-style centered mini player ──────────────────────
+// ─── Music control — full-width bottom bar ───────────────────────────────────
 function MusicControl({ playing, trackEnded, currentTrack, onToggle, onNext }) {
   return (
-    <div className="absolute z-40" style={{ bottom: 112, left: '50%', transform: 'translateX(-50%)' }}>
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      className="absolute bottom-0 left-0 right-0 z-40"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom,0px)' }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 1.8 }}
+      transition={{ delay: 1.8, duration: 0.4 }}
     >
-      <div className="rounded-2xl overflow-hidden"
-        style={{
-          background: 'rgba(8,7,16,0.82)',
-          border: '1px solid rgba(255,255,255,0.09)',
-          backdropFilter: 'blur(24px)',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-        }}>
-
-        {/* Track selector row */}
-        <div className="flex items-center justify-center gap-2 px-5 pt-3 pb-1">
+      <div style={{
+        background: 'rgba(6,5,14,0.92)',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        backdropFilter: 'blur(28px)',
+      }}>
+        {/* Track tabs */}
+        <div className="flex items-stretch">
           {TRACKS.map((t, i) => (
-            <button key={i} onClick={() => onNext(i)}
-              className="flex flex-col items-center gap-1.5 group"
-              style={{ minWidth: 52 }}>
-              <div className="rounded-full transition-all duration-250"
-                style={{
-                  height: 3,
-                  width: '100%',
-                  background: i === currentTrack
-                    ? 'linear-gradient(90deg, #d4a07a, #c8b4e8)'
-                    : 'rgba(255,255,255,0.15)',
-                }} />
-              <span className="text-[10px] font-sans transition-colors whitespace-nowrap"
-                style={{ color: i === currentTrack ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.25)' }}>
+            <button key={i}
+              className="flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors"
+              style={{ borderBottom: i === currentTrack ? '2px solid rgba(212,160,122,0.8)' : '2px solid transparent' }}
+              onClick={() => onNext(i)}>
+              <span className="text-[11px] font-sans font-medium whitespace-nowrap"
+                style={{ color: i === currentTrack ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.28)' }}>
                 {t.title}
               </span>
             </button>
           ))}
         </div>
 
-        {/* Controls row */}
-        <div className="flex items-center gap-3 px-4 pb-3 pt-1">
-          <Music2 size={13} style={{ color: playing ? 'rgba(212,160,122,0.7)' : 'rgba(255,255,255,0.2)' }} />
+        {/* Controls */}
+        <div className="flex items-center justify-center gap-5 py-3">
+          <Music2 size={14} style={{ color: playing ? 'rgba(212,160,122,0.7)' : 'rgba(255,255,255,0.18)' }} />
 
           {/* Play / pause */}
           <motion.button
-            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center"
             style={{
               background: playing
-                ? 'linear-gradient(135deg,rgba(212,160,122,0.22),rgba(200,180,232,0.15))'
-                : 'rgba(255,255,255,0.07)',
-              border: playing ? '1px solid rgba(212,160,122,0.25)' : '1px solid rgba(255,255,255,0.06)',
+                ? 'linear-gradient(135deg,rgba(212,160,122,0.25),rgba(200,180,232,0.18))'
+                : 'rgba(255,255,255,0.08)',
+              border: playing ? '1px solid rgba(212,160,122,0.3)' : '1px solid rgba(255,255,255,0.07)',
             }}
             onClick={onToggle} whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.06 }}>
             {playing
-              ? <div className="flex items-end gap-0.5 h-4">
+              ? <div className="flex items-end justify-center gap-0.5 w-full" style={{ height: 16 }}>
                   {[1,2,3].map(j => (
                     <div key={j} className="w-0.5 rounded-full"
-                      style={{ background: 'rgba(212,160,122,0.9)', animation: `eqBar 0.65s ${j*0.15}s ease-in-out infinite` }} />
+                      style={{ background: 'rgba(212,160,122,0.95)', animation: `eqBar 0.65s ${j*0.15}s ease-in-out infinite` }} />
                   ))}
                 </div>
-              : <Play size={13} style={{ color: 'rgba(255,255,255,0.7)', marginLeft: 1 }} />}
+              : <Play size={14} fill="rgba(255,255,255,0.75)" color="rgba(255,255,255,0.75)" style={{ marginLeft: 2 }} />}
           </motion.button>
 
-          {/* Skip */}
           <motion.button
-            className="text-white/28 hover:text-white/65 transition-colors"
+            className="text-white/30 hover:text-white/65 transition-colors"
             onClick={() => onNext((currentTrack + 1) % TRACKS.length)}
             whileTap={{ scale: 0.88 }}>
-            <SkipForward size={15} />
+            <SkipForward size={16} />
           </motion.button>
         </div>
       </div>
     </motion.div>
-    </div>
   )
 }
 
@@ -367,7 +356,7 @@ function SlideDots({ total, current }) {
   const MAX = 9
   const dots = total > MAX ? MAX : total
   return (
-    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex gap-1.5 pointer-events-none">
+    <div className="absolute left-1/2 -translate-x-1/2 z-30 flex gap-1.5 pointer-events-none" style={{ bottom: 100 }}>
       {Array.from({ length: dots }).map((_, i) => (
         <div key={i} className="rounded-full transition-all duration-300"
           style={{
