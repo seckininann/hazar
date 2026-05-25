@@ -176,38 +176,32 @@ function PhotoCard({photo}){
   )
 }
 
-// ─── Love slide ───────────────────────────────────────────────────────────────
+// ─── Love slide — pure CSS transition, zero JS animation cost ────────────────
 const DECOS=['✦','◈','❋','✧','⟡']
 function LoveSlide({msgs,idx,visible}){
   const msg=msgs[idx%msgs.length]
   return(
-    <motion.div
-      style={{
-        position:'absolute',inset:0,display:'flex',flexDirection:'column',
-        alignItems:'center',justifyContent:'center',padding:'0 20px',paddingBottom:90,
-        background:'linear-gradient(155deg,#0f0c1e,#160d22 45%,#0c0b14)',
-        zIndex:20,pointerEvents:visible?'auto':'none',
-      }}
-      initial={{y:'100%'}}
-      animate={{y:visible?'0%':'100%'}}
-      transition={{type:'spring',stiffness:280,damping:30}}>
+    <div style={{
+      position:'absolute',inset:0,display:'flex',flexDirection:'column',
+      alignItems:'center',justifyContent:'center',padding:'0 20px',paddingBottom:90,
+      background:'linear-gradient(155deg,#0f0c1e,#160d22 45%,#0c0b14)',
+      zIndex:20,pointerEvents:visible?'auto':'none',
+      transform:visible?'translateY(0)':'translateY(100%)',
+      transition:'transform 0.38s cubic-bezier(0.22,1,0.36,1)',
+      willChange:'transform',
+    }}>
       <StarBg/>
       <div style={{position:'absolute',width:200,height:200,top:'8%',left:'2%',background:'radial-gradient(circle,rgba(212,160,122,.05),transparent 70%)',filter:'blur(45px)',animation:'drift 9s ease-in-out infinite',pointerEvents:'none'}}/>
       <div style={{position:'absolute',width:160,height:160,bottom:'10%',right:'3%',background:'radial-gradient(circle,rgba(180,130,250,.05),transparent 70%)',filter:'blur(40px)',animation:'drift 11s 2.5s ease-in-out infinite',pointerEvents:'none'}}/>
 
-      <AnimatePresence mode="wait">
-        <motion.div key={msg.id}
-          style={{
-            width:'100%',maxWidth:'min(calc(100vw - 40px),360px)',
-            borderRadius:26,padding:'36px 24px',textAlign:'center',position:'relative',
-            background:'rgba(18,16,28,.94)',border:'1px solid rgba(212,160,122,.08)',
-            boxShadow:'0 24px 70px rgba(0,0,0,.55)',
-            backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',
-          }}
-          initial={{opacity:0,y:20,scale:.94}}
-          animate={{opacity:1,y:0,scale:1}}
-          exit={{opacity:0,y:-14,scale:.96}}
-          transition={{duration:.34,ease:[.22,1,.36,1]}}>
+      <div style={{
+        width:'100%',maxWidth:'min(calc(100vw - 40px),360px)',
+        borderRadius:26,padding:'36px 24px',textAlign:'center',position:'relative',
+        background:'rgba(18,16,28,.94)',border:'1px solid rgba(212,160,122,.08)',
+        boxShadow:'0 24px 70px rgba(0,0,0,.55)',
+        backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',
+        transition:'opacity .25s',
+      }}>
 
           <div style={{display:'flex',justifyContent:'center',gap:11,marginBottom:18}}>
             {DECOS.map((d,i)=>(
@@ -224,17 +218,19 @@ function LoveSlide({msgs,idx,visible}){
           </p>
           <div style={{width:44,height:1,margin:'0 auto 14px',background:'linear-gradient(90deg,transparent,rgba(212,160,122,.35),transparent)'}}/>
           <p style={{color:'rgba(255,255,255,.24)',fontSize:10.5,letterSpacing:'0.2em',textTransform:'uppercase'}}>{msg.sub}</p>
-        </motion.div>
-      </AnimatePresence>
+      </div>
 
       {msgs.length>1&&(
-        <div style={{display:'flex',gap:5,marginTop:18,position:'relative',zIndex:2}}>
+        <div style={{display:'flex',gap:5,marginTop:18,position:'relative',zIndex:2,alignItems:'center'}}>
           {msgs.map((_,i)=>(
-            <div key={i} style={{height:4,borderRadius:2,width:i===idx%msgs.length?13:4,background:i===idx%msgs.length?'rgba(200,168,242,.75)':'rgba(255,255,255,.12)',transition:'all .25s'}}/>
+            <div key={i} style={{height:4,borderRadius:2,width:i===idx%msgs.length?14:4,background:i===idx%msgs.length?'rgba(200,168,242,.8)':'rgba(255,255,255,.14)',transition:'all .28s'}}/>
           ))}
         </div>
       )}
-    </motion.div>
+
+      {/* swipe left/right hint */}
+      <p style={{marginTop:12,color:'rgba(255,255,255,.18)',fontSize:10.5,letterSpacing:'.12em',pointerEvents:'none'}}>← mesajlar →</p>
+    </div>
   )
 }
 
@@ -335,6 +331,7 @@ export default function MemoryUniverse(){
   const coverTitle = localStorage.getItem(LS_TITLE_KEY)||'Özelimiz'
   const totalCols  = 1+photos.length
   totalR.current   = totalCols
+  const msgsLen    = MSGS.length
 
   useEffect(()=>{ colRef.current=col },[col])
   useEffect(()=>{ rowRef.current=row },[row])
@@ -388,25 +385,30 @@ export default function MemoryUniverse(){
   const navigate=useCallback((dc,dr)=>{
     if(busyRef.current)return
     busyRef.current=true
-    setTimeout(()=>{busyRef.current=false},420)
+    setTimeout(()=>{busyRef.current=false},380)
     const curCol=colRef.current
     const curRow=rowRef.current
     if(dr!==0){
       const nr=Math.max(0,Math.min(1,curRow+dr))
       if(nr===curRow)return
       rowRef.current=nr
-      setLoveIdx(Math.max(0,curCol-1))
+      if(nr===1) setLoveIdx(Math.max(0,curCol-1))
       setRow(nr)
       return
     }
     if(dc!==0){
+      // When love slide open → cycle messages, don't move track
+      if(curRow===1){
+        setLoveIdx(i=>((i+(dc>0?1:-1))+MSGS.length)%MSGS.length)
+        return
+      }
       setHint(false)
       const nc=Math.max(0,Math.min(totalR.current-1,curCol+dc))
       if(nc===curCol)return
       colRef.current=nc
       setCol(nc)
     }
-  },[])
+  },[MSGS.length])
 
   const logout=useCallback(()=>{
     const audio=audioRef.current
@@ -435,8 +437,8 @@ export default function MemoryUniverse(){
     }
 
     if(ts.locked==='h'){
-      // Live horizontal drag — direct DOM, no state update
-      if(trackRef.current){
+      // Only live-drag the track when love slide is NOT open
+      if(rowRef.current===0&&trackRef.current){
         const base=-colRef.current*window.innerWidth
         trackRef.current.style.transition='none'
         trackRef.current.style.transform=`translateX(${base+dx}px)`
