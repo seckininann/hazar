@@ -65,7 +65,7 @@ function ScrollHint() {
 
 // ─── Avatar ring (small couple thumbnail in header) ──────────────────────────
 function AvatarRing() {
-  const src = localStorage.getItem(LS_HERO_KEY) || '/assets/couple.jpg'
+  const src = '/assets/couple.jpg'
   return (
     <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
       style={{ border: '2px solid rgba(212,160,122,0.5)', padding: 1 }}>
@@ -80,7 +80,7 @@ const TICKER_WORDS = [
   'bir ömrü yeter', '♡', 'her zaman böyle mutlu olalım', '♡',
 ]
 function HeroSlide({ coverTitle }) {
-  const heroBg = localStorage.getItem(LS_HERO_KEY) || '/assets/couple.jpg'
+  const heroBg = '/assets/couple.jpg'
   return (
     <div className="relative flex-shrink-0 h-full snap-start overflow-hidden" style={{ width: '100vw' }}>
       {/* Photo */}
