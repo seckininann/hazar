@@ -2,14 +2,13 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart, Bookmark, Play, Pause, SkipForward,
-  Music2, ChevronLeft, ChevronRight, Star, X,
+  Music2, ChevronLeft, ChevronRight, Sparkles, Star, Infinity,
 } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 import HeartEmitter from '../memory/HeartEmitter.jsx'
 
 const LS_TITLE_KEY    = 'hazar_cover_title'
 const LS_MESSAGES_KEY = 'hazar_love_messages'
-const LS_HERO_KEY     = 'hazar_hero_bg'
 
 const TRACKS = [
   { src: '/audio/music1.mp3', title: 'Seninle' },
@@ -17,9 +16,11 @@ const TRACKS = [
   { src: '/audio/music3.mp3', title: 'Sonsuzluk' },
 ]
 const DEFAULT_MESSAGES = [
-  { id: 'm1', text: 'Seninle her an güzel',    sub: 'her zaman, her yerde' },
+  { id: 'm1', text: 'Seninle her an güzel', sub: 'her zaman, her yerde' },
   { id: 'm2', text: 'Dünyanın en tatlı insanısın', sub: 'sadece sen biliyorsun' },
-  { id: 'm3', text: 'Seni çok seviyorum',       sub: 'kalbimin derinliklerinden' },
+  { id: 'm3', text: 'Seni çok seviyorum', sub: 'kalbimin derinliklerinden' },
+  { id: 'm4', text: 'Yanında olmak yeter', sub: 'başka hiçbir şeye gerek yok' },
+  { id: 'm5', text: 'Bir ömür yetmez', sub: 'hep daha fazlasını isterim' },
 ]
 function loadMessages() {
   try {
@@ -28,84 +29,72 @@ function loadMessages() {
     return Array.isArray(a) && a.length > 0 ? a : DEFAULT_MESSAGES
   } catch { return DEFAULT_MESSAGES }
 }
-function getPhotoSrc(p) { return p.src || p.url || p.dataUrl || '' }
+function getPhotoSrc(p) { return p?.src || p?.url || p?.dataUrl || '' }
 
 const CSS = `
 @keyframes eqBar {
   0%,100% { height: 30%; }
   50%      { height: 100%; }
 }
-@keyframes hintPulse {
-  0%,100% { opacity: 0.5; transform: translateX(0); }
-  50%     { opacity: 1;   transform: translateX(6px); }
-}
 @keyframes tickerScroll {
   0%   { transform: translateX(-110%); }
   100% { transform: translateX(110vw); }
 }
+@keyframes floatUp {
+  0%   { opacity: 0.6; transform: translateY(0) scale(1); }
+  100% { opacity: 0;   transform: translateY(-60px) scale(1.2); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+* { -webkit-tap-highlight-color: transparent; }
 `
 
-// ─── Scroll hint ──────────────────────────────────────────────────────────────
-function ScrollHint() {
-  return (
-    <motion.div
-      className="absolute inset-0 z-50 flex items-end justify-center pb-28 pointer-events-none select-none"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }} transition={{ delay: 0.8, duration: 0.5 }}
-    >
-      <div className="flex items-center gap-2 px-5 py-2.5 rounded-2xl"
-        style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}>
-        <ChevronRight size={14} className="text-white/60" style={{ animation: 'hintPulse 1.2s ease-in-out infinite' }} />
-        <ChevronRight size={14} className="text-white/40" style={{ animation: 'hintPulse 1.2s 0.15s ease-in-out infinite' }} />
-        <span className="text-white/55 text-xs font-sans font-medium ml-1">Sola kaydır</span>
-      </div>
-    </motion.div>
-  )
-}
+const TICKER_WORDS = [
+  'her zaman böyle mutlu olalım', '✦', 'seninle her an güzel',
+  '✦', 'bir ömrü yeter', '✦', 'dünya senin için döner', '✦',
+]
 
-// ─── Avatar ring (small couple thumbnail in header) ──────────────────────────
+// ─── Avatar ring ──────────────────────────────────────────────────────────────
 function AvatarRing() {
-  const src = '/assets/couple.jpg'
   return (
     <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
       style={{ border: '2px solid rgba(212,160,122,0.5)', padding: 1 }}>
-      <img src={src} alt="" className="w-full h-full object-cover rounded-full" />
+      <img src="/assets/couple.jpg" alt="" className="w-full h-full object-cover rounded-full" />
     </div>
   )
 }
 
 // ─── Hero slide ───────────────────────────────────────────────────────────────
-const TICKER_WORDS = [
-  'her zaman böyle mutlu olalım', '♡', 'seninle her an güzel', '♡',
-  'bir ömrü yeter', '♡', 'her zaman böyle mutlu olalım', '♡',
-]
-function HeroSlide({ coverTitle }) {
-  const heroBg = '/assets/couple.jpg'
+function HeroSlide({ coverTitle, visible }) {
   return (
-    <div className="relative flex-shrink-0 h-full snap-start overflow-hidden" style={{ width: '100vw' }}>
-      {/* Photo */}
-      <img src={heroBg} alt="kapak"
+    <motion.div
+      className="absolute inset-0 overflow-hidden"
+      initial={false}
+      animate={{ x: visible ? 0 : '-100%', opacity: visible ? 1 : 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 35 }}
+    >
+      <img src="/assets/couple.jpg" alt="kapak"
         className="absolute inset-0 w-full h-full object-cover"
         style={{ filter: 'brightness(0.5) saturate(1.2)' }} />
-
-      {/* Overlays */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/35 pointer-events-none" />
 
-      {/* Main text */}
-      <div className="relative z-10 flex flex-col items-center justify-center h-full px-8 text-center pb-24">
+      <div className="relative z-10 flex flex-col items-center justify-center h-full px-8 text-center"
+        style={{ paddingBottom: 'calc(88px + env(safe-area-inset-bottom,0px))' }}>
         <motion.p
           className="text-white/38 text-[11px] font-sans font-medium tracking-[0.22em] uppercase mb-6"
-          initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+          initial={{ opacity: 0, y: -12 }} animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : -12 }}
+          transition={{ delay: 0.4 }}>
           {coverTitle}
         </motion.p>
 
         <motion.h1
           className="font-display font-bold text-white leading-tight mb-5"
           style={{ fontSize: 'clamp(1.9rem,7.5vw,2.8rem)', textShadow: '0 4px 36px rgba(0,0,0,0.75)' }}
-          initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.85, ease: 'easeOut' }}>
-          Dünya yıkılsa da
-          <br />
+          initial={{ opacity: 0, y: 30 }} animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 30 }}
+          transition={{ delay: 0.6, duration: 0.8 }}>
+          Dünya yıkılsa da<br />
           <span style={{
             background: 'linear-gradient(135deg,#f9d4a8 0%,#f4b8cc 50%,#d4b4f5 100%)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
@@ -116,42 +105,31 @@ function HeroSlide({ coverTitle }) {
 
         <motion.div className="w-16 h-px"
           style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)' }}
-          initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.4 }} />
+          initial={{ scaleX: 0 }} animate={{ scaleX: visible ? 1 : 0 }} transition={{ delay: 1.2 }} />
       </div>
 
-      {/* Romantic ticker — two offset copies for seamless loop */}
+      {/* Romantic ticker */}
       <div className="absolute z-20 overflow-hidden pointer-events-none w-full"
-        style={{ bottom: 108 }}>
+        style={{ bottom: 'calc(92px + env(safe-area-inset-bottom,0px))' }}>
         {[0, 1].map(i => (
           <div key={i} className="absolute top-0 flex items-center whitespace-nowrap"
-            style={{
-              gap: 32,
-              animation: `tickerScroll ${20 + i * 10}s ${i * 10}s linear infinite`,
-            }}>
+            style={{ gap: 28, animation: `tickerScroll ${20 + i * 10}s ${i * 10}s linear infinite` }}>
             {TICKER_WORDS.map((w, j) => (
-              <span key={j}
-                className="font-display italic select-none"
+              <span key={j} className="font-display italic select-none"
                 style={{
-                  fontSize: 12,
-                  letterSpacing: '0.06em',
-                  color: w === '♡'
-                    ? 'rgba(244,184,204,0.55)'
-                    : 'rgba(255,255,255,0.3)',
-                }}>
-                {w}
-              </span>
+                  fontSize: 12, letterSpacing: '0.06em',
+                  color: w === '✦' ? 'rgba(244,184,204,0.55)' : 'rgba(255,255,255,0.3)',
+                }}>{w}</span>
             ))}
           </div>
         ))}
       </div>
-
-      <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-    </div>
+    </motion.div>
   )
 }
 
-// ─── Photo slide — Instagram card style ──────────────────────────────────────
-function PhotoSlide({ photo }) {
+// ─── Photo slide ──────────────────────────────────────────────────────────────
+function PhotoSlide({ photo, visible, direction }) {
   const [liked, setLiked] = useState(false)
   const [saved, setSaved] = useState(false)
   const [tapHearts, setTapHearts] = useState([])
@@ -173,42 +151,44 @@ function PhotoSlide({ photo }) {
   }, [])
 
   return (
-    <div className="flex-shrink-0 h-full snap-start flex flex-col items-center justify-center px-4 pb-24"
-      style={{ width: '100vw', background: '#0c0b12' }}>
-
-      {/* Card */}
+    <motion.div
+      className="absolute inset-0 flex flex-col items-center justify-center px-4"
+      style={{ background: '#0c0b12', paddingBottom: 'calc(88px + env(safe-area-inset-bottom,0px))' }}
+      initial={{ x: direction > 0 ? '100%' : '-100%', opacity: 0 }}
+      animate={{ x: visible ? 0 : direction > 0 ? '-100%' : '100%', opacity: visible ? 1 : 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 35 }}
+    >
       <motion.div
-        className="w-full max-w-sm rounded-3xl overflow-hidden"
-        style={{ background: '#161520', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+        className="w-full rounded-3xl overflow-hidden"
+        style={{
+          maxWidth: 'min(calc(100vw - 32px), 380px)',
+          background: '#161520',
+          border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+        }}
+        initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
       >
-        {/* Post header */}
+        {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3">
           <AvatarRing />
           <div className="flex-1 min-w-0">
-            <p className="text-white/90 text-sm font-semibold leading-none mb-0.5">Hazar</p>
+            <p className="text-white/90 text-sm font-semibold leading-none mb-0.5">Hazar &amp; Eda</p>
             {photo.date && <p className="text-white/35 text-xs font-sans">{photo.date}</p>}
           </div>
         </div>
 
         {/* Photo */}
-        <div
-          className="relative overflow-hidden cursor-pointer select-none"
-          style={{ aspectRatio: '1/1' }}
-          onClick={handleDoubleTap} onTouchEnd={handleDoubleTap}
-        >
+        <div className="relative overflow-hidden cursor-pointer select-none" style={{ aspectRatio: '1/1' }}
+          onClick={handleDoubleTap} onTouchEnd={handleDoubleTap}>
           {src
             ? <img src={src} alt={photo.caption || 'anı'} className="w-full h-full object-cover" draggable={false} />
             : <div className="w-full h-full bg-white/4 flex items-center justify-center">
                 <span className="text-white/20 text-sm font-sans">Fotoğraf yok</span>
-              </div>
-          }
+              </div>}
 
-          {/* Tap hearts */}
           <AnimatePresence>
             {tapHearts.map(h => (
-              <motion.div key={h.id}
-                className="absolute pointer-events-none select-none"
+              <motion.div key={h.id} className="absolute pointer-events-none select-none"
                 style={{ left: h.cx - 30, top: h.cy - 30 }}
                 initial={{ scale: 0, opacity: 1 }}
                 animate={{ scale: [0, 1.6, 1.2], opacity: [1, 1, 0], y: -60 }}
@@ -217,37 +197,22 @@ function PhotoSlide({ photo }) {
               </motion.div>
             ))}
           </AnimatePresence>
-
-          <AnimatePresence>
-            {liked && tapHearts.length > 0 && (
-              <motion.div className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: [0,1,1,0], scale: [0,1.3,1,0.8] }}
-                transition={{ duration: 0.7 }}>
-                <Heart size={90} fill="#e84393" color="#e84393" style={{ filter: 'drop-shadow(0 0 20px #e84393aa)' }} />
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
-        {/* Action bar + caption */}
+        {/* Actions */}
         <div className="px-4 pt-3 pb-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <motion.button onClick={() => setLiked(l => !l)} whileTap={{ scale: 1.3 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 12 }}>
-                <Heart size={24}
-                  fill={liked ? '#e84393' : 'none'}
-                  color={liked ? '#e84393' : 'rgba(255,255,255,0.7)'} />
-              </motion.button>
-            </div>
+          <div className="flex items-center justify-between mb-2">
+            <motion.button onClick={() => setLiked(l => !l)} whileTap={{ scale: 1.3 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 12 }}>
+              <Heart size={24} fill={liked ? '#e84393' : 'none'}
+                color={liked ? '#e84393' : 'rgba(255,255,255,0.7)'} />
+            </motion.button>
             <motion.button onClick={() => setSaved(s => !s)} whileTap={{ scale: 1.2 }}>
               <Bookmark size={22}
                 fill={saved ? 'rgba(212,160,122,0.9)' : 'none'}
                 color={saved ? 'rgba(212,160,122,0.9)' : 'rgba(255,255,255,0.45)'} />
             </motion.button>
           </div>
-
           {photo.caption && (
             <p className="text-white/75 text-sm font-sans leading-relaxed">
               <span className="text-white/90 font-semibold mr-1.5">hazar</span>
@@ -256,64 +221,131 @@ function PhotoSlide({ photo }) {
           )}
         </div>
       </motion.div>
-
-    </div>
+    </motion.div>
   )
 }
 
-// ─── Love slide — clean quote card ───────────────────────────────────────────
-function LoveSlide({ msg }) {
-  return (
-    <div className="flex-shrink-0 h-full snap-start flex flex-col items-center justify-center px-5 pb-24"
-      style={{ width: '100vw', background: '#0c0b12' }}>
-
-      <motion.div
-        className="w-full max-w-sm rounded-3xl px-8 py-12 text-center"
-        style={{ background: '#161520', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}
-        initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}
-      >
-        <div className="w-10 h-10 rounded-2xl flex items-center justify-center mx-auto mb-6"
-          style={{ background: 'linear-gradient(135deg,rgba(212,160,122,0.18),rgba(200,180,232,0.12))', border: '1px solid rgba(212,160,122,0.2)' }}>
-          <Heart size={18} fill="rgba(212,160,122,0.8)" color="rgba(212,160,122,0.8)" />
-        </div>
-
-        <p className="font-display italic text-white/85 text-2xl leading-relaxed mb-5"
-          style={{ textShadow: '0 0 30px rgba(212,160,122,0.1)' }}>
-          "{msg.text}"
-        </p>
-
-        <div className="w-10 h-px mx-auto mb-4"
-          style={{ background: 'linear-gradient(90deg,transparent,rgba(212,160,122,0.4),transparent)' }} />
-
-        <p className="text-white/35 text-xs font-sans tracking-widest uppercase">{msg.sub}</p>
-      </motion.div>
-    </div>
-  )
-}
-
-// ─── Music control — full-width bottom bar ───────────────────────────────────
-function MusicControl({ playing, trackEnded, currentTrack, onToggle, onNext }) {
+// ─── Love slide — enters from bottom ─────────────────────────────────────────
+const LOVE_DECORATIONS = ['✦', '◈', '❋', '⟡', '✧']
+function LoveSlide({ msg, visible }) {
   return (
     <motion.div
-      className="absolute bottom-0 left-0 right-0 z-40"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom,0px)' }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 1.8, duration: 0.4 }}
+      className="absolute inset-0 flex flex-col items-center justify-center px-5"
+      style={{
+        background: 'linear-gradient(160deg,#0e0c1a 0%,#150d1e 50%,#0c0b12 100%)',
+        paddingBottom: 'calc(88px + env(safe-area-inset-bottom,0px))',
+      }}
+      initial={{ y: '100%', opacity: 0 }}
+      animate={{ y: visible ? 0 : '100%', opacity: visible ? 1 : 0 }}
+      transition={{ type: 'spring', stiffness: 280, damping: 32 }}
     >
+      {/* Decorative glow orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute rounded-full" style={{
+          width: 200, height: 200, top: '15%', left: '20%',
+          background: 'radial-gradient(circle,rgba(212,160,122,0.08) 0%,transparent 70%)',
+          filter: 'blur(40px)',
+        }} />
+        <div className="absolute rounded-full" style={{
+          width: 160, height: 160, bottom: '20%', right: '15%',
+          background: 'radial-gradient(circle,rgba(200,150,240,0.08) 0%,transparent 70%)',
+          filter: 'blur(40px)',
+        }} />
+      </div>
+
+      <motion.div
+        className="w-full rounded-3xl px-7 py-10 text-center relative"
+        style={{
+          maxWidth: 'min(calc(100vw - 40px), 360px)',
+          background: 'rgba(22,21,32,0.9)',
+          border: '1px solid rgba(212,160,122,0.12)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(20px)',
+        }}
+        initial={{ scale: 0.9, opacity: 0, y: 30 }}
+        animate={{ scale: visible ? 1 : 0.9, opacity: visible ? 1 : 0, y: visible ? 0 : 30 }}
+        transition={{ delay: 0.12, duration: 0.45, ease: 'easeOut' }}
+      >
+        {/* Top decoration */}
+        <motion.div className="flex justify-center gap-3 mb-6"
+          initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          {LOVE_DECORATIONS.map((d, i) => (
+            <span key={i} className="text-xs select-none"
+              style={{
+                color: i === 2 ? 'rgba(244,184,204,0.7)' : 'rgba(212,160,122,0.4)',
+                fontSize: i === 2 ? 16 : 11,
+                animation: `floatUp ${2.5 + i * 0.4}s ${i * 0.3}s ease-in-out infinite`,
+              }}>{d}</span>
+          ))}
+        </motion.div>
+
+        {/* Icon */}
+        <motion.div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-5"
+          style={{
+            background: 'linear-gradient(135deg,rgba(212,160,122,0.15),rgba(200,170,240,0.1))',
+            border: '1px solid rgba(212,160,122,0.18)',
+            boxShadow: '0 0 20px rgba(212,160,122,0.08)',
+          }}
+          initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.25, type: 'spring' }}>
+          <Heart size={20} fill="rgba(212,160,122,0.85)" color="rgba(212,160,122,0.85)" />
+        </motion.div>
+
+        {/* Quote */}
+        <motion.p
+          className="font-display italic text-white/88 leading-relaxed mb-5"
+          style={{ fontSize: 'clamp(1.15rem,5vw,1.4rem)', textShadow: '0 0 40px rgba(212,160,122,0.12)' }}
+          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+          &ldquo;{msg.text}&rdquo;
+        </motion.p>
+
+        <motion.div className="w-12 h-px mx-auto mb-4"
+          style={{ background: 'linear-gradient(90deg,transparent,rgba(212,160,122,0.45),transparent)' }}
+          initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.5 }} />
+
+        <motion.p className="text-white/32 text-xs font-sans tracking-[0.18em] uppercase"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
+          {msg.sub}
+        </motion.p>
+
+        {/* Bottom sparkle */}
+        <motion.div className="flex justify-center gap-2 mt-5"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
+          {[Sparkles, Star, Infinity].map((Icon, i) => (
+            <Icon key={i} size={12} style={{ color: 'rgba(212,160,122,0.3)', marginTop: i === 1 ? -1 : 0 }} />
+          ))}
+        </motion.div>
+      </motion.div>
+
+      {/* Swipe up hint */}
+      <motion.div className="absolute flex flex-col items-center gap-1 pointer-events-none"
+        style={{ bottom: 'calc(96px + env(safe-area-inset-bottom,0px))' }}
+        animate={{ y: [0, -4, 0] }} transition={{ duration: 1.8, repeat: Infinity }}>
+        <ChevronLeft size={14} className="rotate-90" style={{ color: 'rgba(255,255,255,0.18)' }} />
+        <span className="text-white/15 text-[10px] font-sans tracking-widest uppercase">yukarı</span>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ─── Music bar ────────────────────────────────────────────────────────────────
+function MusicControl({ playing, currentTrack, onToggle, onNext }) {
+  return (
+    <div className="absolute bottom-0 left-0 right-0 z-40"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom,0px)' }}>
       <div style={{
-        background: 'rgba(6,5,14,0.92)',
+        background: 'rgba(6,5,14,0.95)',
         borderTop: '1px solid rgba(255,255,255,0.07)',
         backdropFilter: 'blur(28px)',
+        WebkitBackdropFilter: 'blur(28px)',
       }}>
         {/* Track tabs */}
-        <div className="flex items-stretch">
+        <div className="flex">
           {TRACKS.map((t, i) => (
             <button key={i}
-              className="flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors"
+              className="flex-1 flex items-center justify-center py-2 transition-colors"
               style={{ borderBottom: i === currentTrack ? '2px solid rgba(212,160,122,0.8)' : '2px solid transparent' }}
               onClick={() => onNext(i)}>
-              <span className="text-[11px] font-sans font-medium whitespace-nowrap"
+              <span className="text-[11px] font-sans font-medium whitespace-nowrap leading-none"
                 style={{ color: i === currentTrack ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.28)' }}>
                 {t.title}
               </span>
@@ -321,57 +353,84 @@ function MusicControl({ playing, trackEnded, currentTrack, onToggle, onNext }) {
           ))}
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-5 py-3">
-          <Music2 size={14} style={{ color: playing ? 'rgba(212,160,122,0.7)' : 'rgba(255,255,255,0.18)' }} />
+        {/* Controls row */}
+        <div className="flex items-center justify-center gap-6 py-2.5">
+          <Music2 size={13} style={{ color: playing ? 'rgba(212,160,122,0.7)' : 'rgba(255,255,255,0.18)' }} />
 
-          {/* Play / pause */}
           <motion.button
-            className="w-10 h-10 rounded-2xl flex items-center justify-center"
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{
               background: playing
                 ? 'linear-gradient(135deg,rgba(212,160,122,0.25),rgba(200,180,232,0.18))'
                 : 'rgba(255,255,255,0.08)',
               border: playing ? '1px solid rgba(212,160,122,0.3)' : '1px solid rgba(255,255,255,0.07)',
             }}
-            onClick={onToggle} whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.06 }}>
+            onClick={onToggle} whileTap={{ scale: 0.88 }}>
             {playing
-              ? <div className="flex items-end justify-center gap-0.5 w-full" style={{ height: 16 }}>
+              ? <div className="flex items-end justify-center gap-0.5" style={{ height: 14, width: 14 }}>
                   {[1,2,3].map(j => (
                     <div key={j} className="w-0.5 rounded-full"
                       style={{ background: 'rgba(212,160,122,0.95)', animation: `eqBar 0.65s ${j*0.15}s ease-in-out infinite` }} />
                   ))}
                 </div>
-              : <Play size={14} fill="rgba(255,255,255,0.75)" color="rgba(255,255,255,0.75)" style={{ marginLeft: 2 }} />}
+              : <Play size={13} fill="rgba(255,255,255,0.75)" color="rgba(255,255,255,0.75)" style={{ marginLeft: 1 }} />}
           </motion.button>
 
-          <motion.button
-            className="text-white/30 hover:text-white/65 transition-colors"
-            onClick={() => onNext((currentTrack + 1) % TRACKS.length)}
-            whileTap={{ scale: 0.88 }}>
-            <SkipForward size={16} />
+          <motion.button onClick={() => onNext((currentTrack + 1) % TRACKS.length)} whileTap={{ scale: 0.88 }}>
+            <SkipForward size={14} style={{ color: 'rgba(255,255,255,0.32)' }} />
           </motion.button>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
-// ─── Slide dots ───────────────────────────────────────────────────────────────
-function SlideDots({ total, current }) {
-  if (total <= 1) return null
-  const MAX = 9
-  const dots = total > MAX ? MAX : total
+// ─── Navigation indicator ─────────────────────────────────────────────────────
+function NavIndicator({ total, col, row }) {
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 z-30 flex gap-1.5 pointer-events-none" style={{ bottom: 100 }}>
-      {Array.from({ length: dots }).map((_, i) => (
-        <div key={i} className="rounded-full transition-all duration-300"
-          style={{
-            width: i === current ? 16 : 4, height: 4,
-            background: i === current ? 'rgba(212,160,122,0.85)' : 'rgba(255,255,255,0.2)',
-          }} />
-      ))}
+    <div className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1.5 pointer-events-none"
+      style={{ bottom: 'calc(88px + env(safe-area-inset-bottom,0px) + 8px)' }}>
+      {/* Horizontal dots */}
+      <div className="flex gap-1.5">
+        {Array.from({ length: Math.min(total, 9) }).map((_, i) => (
+          <div key={i} className="rounded-full transition-all duration-300"
+            style={{
+              width: i === col ? 14 : 4, height: 4,
+              background: i === col
+                ? (row === 1 ? 'rgba(200,170,240,0.85)' : 'rgba(212,160,122,0.85)')
+                : 'rgba(255,255,255,0.18)',
+            }} />
+        ))}
+      </div>
+      {/* Row indicator */}
+      {total > 1 && (
+        <div className="flex gap-1">
+          {[0, 1].map(r => (
+            <div key={r} className="rounded-full transition-all duration-300"
+              style={{
+                width: 4, height: r === row ? 10 : 4,
+                background: r === row ? 'rgba(200,180,220,0.6)' : 'rgba(255,255,255,0.12)',
+              }} />
+          ))}
+        </div>
+      )}
     </div>
+  )
+}
+
+// ─── Swipe hint ───────────────────────────────────────────────────────────────
+function SwipeHint() {
+  return (
+    <motion.div className="absolute inset-0 z-50 flex items-end justify-center pointer-events-none"
+      style={{ paddingBottom: 'calc(104px + env(safe-area-inset-bottom,0px))' }}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      transition={{ delay: 0.8, duration: 0.5 }}>
+      <div className="flex items-center gap-2 px-5 py-2.5 rounded-2xl"
+        style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}>
+        <ChevronRight size={13} className="text-white/60" />
+        <span className="text-white/55 text-xs font-sans font-medium">Sola kaydır</span>
+      </div>
+    </motion.div>
   )
 }
 
@@ -379,46 +438,33 @@ function SlideDots({ total, current }) {
 export default function MemoryUniverse() {
   const { state, dispatch } = useAppState()
   const photos = state.photos || []
-  const [currentSlide, setCurrentSlide] = useState(0)
+  const LOVE_MESSAGES = loadMessages()
+
+  // 2D navigation: col = which photo (0=hero, 1+=photos), row = 0|1
+  const [col, setCol] = useState(0)
+  const [row, setRow] = useState(0)
+  const [prevCol, setPrevCol] = useState(0)
+  const [dir, setDir] = useState(1)          // 1=moving right, -1=moving left
   const [showHint, setShowHint] = useState(true)
+
   const [musicPlaying, setMusicPlaying] = useState(false)
   const [trackEnded, setTrackEnded] = useState(false)
   const [currentTrack, setCurrentTrack] = useState(0)
   const audioRef = useRef(null)
-  const scrollRef = useRef(null)
   const interacted = useRef(false)
+  const touchStart = useRef(null)
+  const animating = useRef(false)
 
   const coverTitle = localStorage.getItem(LS_TITLE_KEY) || 'Özelimiz'
-  const LOVE_MESSAGES = loadMessages()
+  const totalCols = 1 + photos.length // hero + all photos
 
-  const slides = []
-  photos.forEach((photo, i) => {
-    slides.push({ type: 'photo', data: photo, key: `p-${photo.id}` })
-    if ((i + 1) % 3 === 0) {
-      const msg = LOVE_MESSAGES[Math.floor((i + 1) / 3) - 1]
-      if (msg) slides.push({ type: 'love', data: msg, key: `l-${msg.id}-${i}` })
-    }
-  })
-  if (photos.length === 0)
-    LOVE_MESSAGES.forEach(msg => slides.push({ type: 'love', data: msg, key: `l-${msg.id}` }))
-  const totalSlides = 1 + slides.length
-
+  // hide hint after swipe or 4s
   useEffect(() => {
     const t = setTimeout(() => setShowHint(false), 4000)
     return () => clearTimeout(t)
   }, [])
 
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const handler = () => {
-      setCurrentSlide(Math.round(el.scrollLeft / window.innerWidth))
-      setShowHint(false)
-    }
-    el.addEventListener('scroll', handler, { passive: true })
-    return () => el.removeEventListener('scroll', handler)
-  }, [])
-
+  // Music autoplay
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
@@ -431,23 +477,20 @@ export default function MemoryUniverse() {
     const t = setTimeout(tryPlay, 2500)
     const onFirst = () => {
       if (interacted.current) return
-      interacted.current = true
-      clearTimeout(t)
+      interacted.current = true; clearTimeout(t)
       audio.play().then(() => setMusicPlaying(true)).catch(() => {})
     }
     document.addEventListener('touchstart', onFirst, { once: true })
     document.addEventListener('click', onFirst, { once: true })
     return () => {
-      audio.removeEventListener('ended', onEnded)
-      clearTimeout(t)
+      audio.removeEventListener('ended', onEnded); clearTimeout(t)
       document.removeEventListener('touchstart', onFirst)
       document.removeEventListener('click', onFirst)
     }
   }, [])
 
   const toggleMusic = useCallback(() => {
-    const audio = audioRef.current
-    if (!audio) return
+    const audio = audioRef.current; if (!audio) return
     interacted.current = true
     if (musicPlaying) { audio.pause(); setMusicPlaying(false) }
     else {
@@ -457,12 +500,57 @@ export default function MemoryUniverse() {
   }, [musicPlaying, trackEnded])
 
   const selectTrack = useCallback((i) => {
-    const audio = audioRef.current
-    if (!audio) return
+    const audio = audioRef.current; if (!audio) return
     setCurrentTrack(i); setTrackEnded(false)
     audio.src = TRACKS[i].src; audio.load()
     if (musicPlaying) audio.play().catch(() => {})
   }, [musicPlaying])
+
+  const navigate = useCallback((dCol, dRow) => {
+    if (animating.current) return
+    animating.current = true
+    setTimeout(() => { animating.current = false }, 380)
+
+    if (dRow !== 0) {
+      // vertical nav (only when on a photo slide, not hero)
+      if (col === 0) return
+      const newRow = Math.max(0, Math.min(1, row + dRow))
+      if (newRow !== row) setRow(newRow)
+      return
+    }
+    if (dCol !== 0) {
+      setShowHint(false)
+      const newCol = Math.max(0, Math.min(totalCols - 1, col + dCol))
+      if (newCol !== col) {
+        setPrevCol(col)
+        setDir(dCol)
+        setCol(newCol)
+        // when moving cols while on love row, stay on love row
+      }
+    }
+  }, [col, row, totalCols])
+
+  // Touch handlers
+  const onTouchStart = useCallback((e) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }, [])
+
+  const onTouchEnd = useCallback((e) => {
+    if (!touchStart.current) return
+    const dx = e.changedTouches[0].clientX - touchStart.current.x
+    const dy = e.changedTouches[0].clientY - touchStart.current.y
+    touchStart.current = null
+    const absDx = Math.abs(dx), absDy = Math.abs(dy)
+    const threshold = 40
+    if (absDx < threshold && absDy < threshold) return
+    if (absDx > absDy) {
+      if (dx < -threshold) navigate(1, 0)
+      else if (dx > threshold) navigate(-1, 0)
+    } else {
+      if (dy < -threshold) navigate(0, 1)  // swipe up → love
+      else if (dy > threshold) navigate(0, -1) // swipe down → photo
+    }
+  }, [navigate])
 
   const handleLogout = useCallback(() => {
     const audio = audioRef.current
@@ -470,42 +558,48 @@ export default function MemoryUniverse() {
     dispatch({ type: 'RESET_TO_INTRO' })
   }, [dispatch])
 
+  const currentPhoto = col > 0 ? photos[col - 1] : null
+  const loveMsg = col > 0
+    ? LOVE_MESSAGES[(col - 1) % LOVE_MESSAGES.length]
+    : null
+
   return (
-    <div className="relative w-full h-full" style={{ background: '#0c0b12' }}>
+    <div className="relative w-full h-full overflow-hidden" style={{ background: '#0c0b12' }}
+      onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <style>{CSS}</style>
       <audio ref={audioRef} src={TRACKS[0].src} preload="metadata" />
 
-      {/* Snap scroll container */}
-      <div ref={scrollRef} className="w-full h-full flex"
-        style={{
-          overflowX: 'scroll', overflowY: 'hidden',
-          scrollSnapType: 'x mandatory', scrollBehavior: 'smooth',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none', msOverflowStyle: 'none',
-          touchAction: 'pan-x',
-        }}>
-        <HeroSlide coverTitle={coverTitle} />
-        {slides.map(s =>
-          s.type === 'photo'
-            ? <PhotoSlide key={s.key} photo={s.data} />
-            : <LoveSlide key={s.key} msg={s.data} />
-        )}
-      </div>
+      {/* Render all slides — hero always, current photo, current love */}
+      <HeroSlide coverTitle={coverTitle} visible={col === 0 && row === 0} />
 
-      <AnimatePresence>{showHint && <ScrollHint />}</AnimatePresence>
+      {photos.map((photo, i) => {
+        const c = i + 1
+        const isVisible = col === c && row === 0
+        const slideDir = dir
+        return (
+          <PhotoSlide key={photo.id || i} photo={photo}
+            visible={isVisible} direction={slideDir} />
+        )
+      })}
 
-      <SlideDots total={totalSlides} current={currentSlide} />
+      {loveMsg && (
+        <LoveSlide msg={loveMsg} visible={row === 1} />
+      )}
 
-      {/* Top-left back button */}
+      {/* Top-left back */}
       <motion.button
-        className="absolute top-4 left-4 z-40 flex items-center gap-1.5 px-3 py-2 rounded-2xl"
-        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)' }}
+        className="absolute top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-2xl"
+        style={{ background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
         onClick={handleLogout}
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
         whileTap={{ scale: 0.92 }}>
         <ChevronLeft size={14} className="text-white/50" />
         <span className="text-white/45 text-xs font-sans font-medium">Çıkış</span>
       </motion.button>
+
+      <AnimatePresence>{showHint && col === 0 && <SwipeHint />}</AnimatePresence>
+
+      <NavIndicator total={totalCols} col={col} row={row} />
 
       <MusicControl
         playing={musicPlaying} trackEnded={trackEnded}
