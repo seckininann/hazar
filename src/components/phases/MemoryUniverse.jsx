@@ -527,6 +527,8 @@ export default function MemoryUniverse() {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX
       if (clientY > window.innerHeight - MUSIC_H) return
       tsRef.current = { x: clientX, y: clientY }
+      // Block iOS scroll/bounce stealing the swipe gesture
+      if (e.cancelable && e.touches) e.preventDefault()
     }
     const onUp = (e) => {
       if (!tsRef.current) return
@@ -541,15 +543,17 @@ export default function MemoryUniverse() {
       else          { dy < 0 ? navigate(0, 1) : navigate(0, -1) }
     }
 
-    document.addEventListener('touchstart', onDown, { passive: true })
-    document.addEventListener('touchend',   onUp,   { passive: true })
-    document.addEventListener('mousedown',  onDown)
-    document.addEventListener('mouseup',    onUp)
+    // capture:true = fires BEFORE child stopPropagation (fixes framer-motion interference)
+    // passive:false = allows preventDefault to block iOS pull-to-refresh / bounce scroll
+    document.addEventListener('touchstart', onDown, { passive: false, capture: true })
+    document.addEventListener('touchend',   onUp,   { passive: true,  capture: true })
+    document.addEventListener('mousedown',  onDown, { capture: true })
+    document.addEventListener('mouseup',    onUp,   { capture: true })
     return () => {
-      document.removeEventListener('touchstart', onDown)
-      document.removeEventListener('touchend',   onUp)
-      document.removeEventListener('mousedown',  onDown)
-      document.removeEventListener('mouseup',    onUp)
+      document.removeEventListener('touchstart', onDown, { capture: true })
+      document.removeEventListener('touchend',   onUp,   { capture: true })
+      document.removeEventListener('mousedown',  onDown, { capture: true })
+      document.removeEventListener('mouseup',    onUp,   { capture: true })
     }
   }, [navigate])
 
