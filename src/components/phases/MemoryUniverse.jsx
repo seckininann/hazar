@@ -75,29 +75,26 @@ function HeroSlide({ title }) {
         style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', filter:'brightness(.48) saturate(1.2)' }} />
       <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.12) 55%,rgba(0,0,0,.32) 100%)', pointerEvents:'none' }} />
 
+      {/* Text block — anchored to bottom, above ticker+musicbar */}
       <div style={{
-        position:'relative', zIndex:1, display:'flex', flexDirection:'column',
-        alignItems:'center', justifyContent:'center', height:'100%',
-        paddingLeft:32, paddingRight:32, paddingBottom:90, textAlign:'center',
+        position:'absolute', left:0, right:0, zIndex:2, textAlign:'center',
+        bottom: 148, paddingLeft:28, paddingRight:28,
       }}>
-        <motion.p style={{ color:'rgba(255,255,255,.34)', fontSize:11, fontFamily:'sans-serif', letterSpacing:'0.24em', textTransform:'uppercase', marginBottom:24 }}
-          initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} transition={{ delay:.45 }}>
+        <motion.p style={{ color:'rgba(255,255,255,.28)', fontSize:10, fontFamily:'sans-serif', letterSpacing:'0.26em', textTransform:'uppercase', marginBottom:14 }}
+          initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:.5 }}>
           {title}
         </motion.p>
 
-        <motion.h1 style={{ fontWeight:700, color:'#fff', lineHeight:1.2, marginBottom:20, fontSize:'clamp(1.85rem,7.5vw,2.8rem)', textShadow:'0 4px 40px rgba(0,0,0,.8)' }}
-          initial={{ opacity:0, y:32 }} animate={{ opacity:1, y:0 }}
-          transition={{ delay:.6, duration:.85, ease:[.22,1,.36,1] }}>
+        <motion.h1 style={{ fontWeight:700, color:'rgba(255,255,255,.82)', lineHeight:1.25, marginBottom:0, fontSize:'clamp(1.55rem,6.5vw,2.4rem)', textShadow:'0 2px 24px rgba(0,0,0,.9)' }}
+          initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}
+          transition={{ delay:.65, duration:.8, ease:[.22,1,.36,1] }}>
           Dünya yıkılsa da<br />
           <span style={{
             background:'linear-gradient(120deg,#f9d4a8,#f4b8cc,#c8b4f5,#f4b8cc,#f9d4a8)',
             backgroundSize:'200% auto', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
-            animation:'shimmer 4s linear infinite',
+            opacity:.88, animation:'shimmer 4s linear infinite',
           }}>biz ayrılamayız</span>
         </motion.h1>
-
-        <motion.div style={{ width:60, height:1, background:'linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent)' }}
-          initial={{ scaleX:0 }} animate={{ scaleX:1 }} transition={{ delay:1.1 }} />
       </div>
 
       {/* Ticker — single seamless row */}
@@ -212,8 +209,7 @@ function PhotoCard({ photo }) {
 }
 
 // ─── Photo slide wrapper ──────────────────────────────────────────────────────
-function PhotoSlide({ photo, offset }) {
-  // offset = (photoColIndex - currentCol) — how far off screen
+function PhotoSlide({ photo, offset, active }) {
   return (
     <div style={{
       position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
@@ -222,7 +218,7 @@ function PhotoSlide({ photo, offset }) {
       transition:'transform .38s cubic-bezier(.22,1,.36,1)',
       willChange:'transform',
     }}>
-      <PhotoCard photo={photo} />
+      <PhotoCard key={active ? 'active' : 'idle'} photo={photo} />
     </div>
   )
 }
@@ -425,8 +421,9 @@ export default function MemoryUniverse() {
   // Use refs to avoid stale closures in touch handlers
   const colRef  = useRef(0)
   const rowRef  = useRef(0)
-  const busyRef = useRef(false)
-  const tsRef   = useRef(null)  // touch start coords
+  const busyRef    = useRef(false)
+  const tsRef      = useRef(null)
+  const totalColsR = useRef(1)   // always-fresh totalCols
 
   const [col, setCol]         = useState(0)
   const [row, setRow]         = useState(0)
@@ -441,6 +438,7 @@ export default function MemoryUniverse() {
 
   const coverTitle = localStorage.getItem(LS_TITLE_KEY) || 'Özelimiz'
   const totalCols  = 1 + photos.length
+  totalColsR.current = totalCols
 
   // keep refs in sync
   useEffect(() => { colRef.current = col }, [col])
@@ -492,17 +490,17 @@ export default function MemoryUniverse() {
     if (music) audio.play().catch(() => {})
   }, [music])
 
-  // Navigation — uses refs, never stale
+  // Navigation — fully ref-based, never stale
   const navigate = useCallback((dc, dr) => {
     if (busyRef.current) return
     busyRef.current = true
-    setTimeout(() => { busyRef.current = false }, 420)
+    setTimeout(() => { busyRef.current = false }, 400)
 
     const curCol = colRef.current
     const curRow = rowRef.current
 
     if (dr !== 0) {
-      if (curCol === 0) return   // hero → no love row
+      if (curCol === 0) return
       const nr = Math.max(0, Math.min(1, curRow + dr))
       if (nr === curRow) return
       rowRef.current = nr
@@ -512,36 +510,46 @@ export default function MemoryUniverse() {
     }
     if (dc !== 0) {
       setHint(false)
-      const nc = Math.max(0, Math.min(totalCols - 1, curCol + dc))
+      const nc = Math.max(0, Math.min(totalColsR.current - 1, curCol + dc))
       if (nc === curCol) return
       colRef.current = nc
       setCol(nc)
     }
-  }, [totalCols])
+  }, [])
 
-  // Touch handling — attach to document to catch all touches
+  // Unified pointer+touch swipe — works on both desktop & mobile
   useEffect(() => {
-    const onStart = (e) => {
-      // Ignore if touching music bar (fixed, bottom ~85px)
-      const y = e.touches[0].clientY
-      if (y > window.innerHeight - 90) return
-      tsRef.current = { x: e.touches[0].clientX, y }
+    const MUSIC_H = 90
+    const THR = 38
+
+    const onDown = (e) => {
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX
+      if (clientY > window.innerHeight - MUSIC_H) return
+      tsRef.current = { x: clientX, y: clientY }
     }
-    const onEnd = (e) => {
+    const onUp = (e) => {
       if (!tsRef.current) return
-      const dx = e.changedTouches[0].clientX - tsRef.current.x
-      const dy = e.changedTouches[0].clientY - tsRef.current.y
+      const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX
+      const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY
+      const dx = clientX - tsRef.current.x
+      const dy = clientY - tsRef.current.y
       tsRef.current = null
-      const ax = Math.abs(dx), ay = Math.abs(dy), thr = 40
-      if (ax < thr && ay < thr) return
+      const ax = Math.abs(dx), ay = Math.abs(dy)
+      if (ax < THR && ay < THR) return
       if (ax >= ay) { dx < 0 ? navigate(1, 0) : navigate(-1, 0) }
       else          { dy < 0 ? navigate(0, 1) : navigate(0, -1) }
     }
-    document.addEventListener('touchstart', onStart, { passive: true })
-    document.addEventListener('touchend', onEnd,   { passive: true })
+
+    document.addEventListener('touchstart', onDown, { passive: true })
+    document.addEventListener('touchend',   onUp,   { passive: true })
+    document.addEventListener('mousedown',  onDown)
+    document.addEventListener('mouseup',    onUp)
     return () => {
-      document.removeEventListener('touchstart', onStart)
-      document.removeEventListener('touchend', onEnd)
+      document.removeEventListener('touchstart', onDown)
+      document.removeEventListener('touchend',   onUp)
+      document.removeEventListener('mousedown',  onDown)
+      document.removeEventListener('mouseup',    onUp)
     }
   }, [navigate])
 
@@ -578,7 +586,7 @@ export default function MemoryUniverse() {
         const c = i + 1
         if (!visibleSet.has(c)) return null
         return (
-          <PhotoSlide key={photo.id || i} photo={photo} offset={c - col} />
+          <PhotoSlide key={photo.id || i} photo={photo} offset={c - col} active={c === col} />
         )
       })}
 
