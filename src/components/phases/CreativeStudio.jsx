@@ -311,37 +311,39 @@ function AdminSettings() {
 
   return (
     <div className="space-y-4">
-      {/* Firebase status */}
+      {/* Cloud sync status */}
       <Card accent={isFirebaseConfigured ? '52,211,153' : '212,160,122'}>
         <div className="flex items-center gap-2.5 mb-3">
           <Cloud size={14} style={{ color: isFirebaseConfigured ? 'rgba(52,211,153,0.7)' : 'rgba(212,160,122,0.6)' }} />
-          <span className="text-white/50 text-xs font-sans font-semibold tracking-widest uppercase">Firebase</span>
+          <span className="text-white/60 text-xs font-sans font-semibold">Bulut Depolama</span>
           <span className="ml-auto text-[10px] font-sans px-2 py-0.5 rounded-full"
             style={isFirebaseConfigured
               ? { background: 'rgba(52,211,153,0.1)', color: 'rgba(52,211,153,0.8)', border: '1px solid rgba(52,211,153,0.2)' }
               : { background: 'rgba(251,146,60,0.1)', color: 'rgba(251,146,60,0.8)', border: '1px solid rgba(251,146,60,0.2)' }}>
-            {isFirebaseConfigured ? 'Bağlı' : 'Kurulmadı'}
+            {isFirebaseConfigured ? 'Aktif' : 'Kurulmadı'}
           </span>
         </div>
+
         {isFirebaseConfigured
-          ? <p className="text-white/35 text-xs font-sans leading-relaxed">Tüm fotoğraflar buluta senkronize ediliyor. Her cihazdan görünür.</p>
-          : <div className="space-y-2.5">
-              <p className="text-white/40 text-xs font-sans leading-relaxed">Fotoğrafları tüm cihazlarda görmek için Firebase kur:</p>
-              <ol className="text-white/30 text-xs font-sans space-y-1.5 list-decimal list-inside">
-                <li><a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" className="text-amber-400/60 underline">console.firebase.google.com</a> → Yeni proje</li>
-                <li>Firestore Database → Test mode ile başlat</li>
-                <li>Storage → Test mode ile başlat</li>
-                <li>Proje Ayarları (&gt;) → Web uygulaması ekle → Config al</li>
-                <li>Vercel Dashboard → Environment Variables ekle:</li>
-              </ol>
-              <div className="rounded-xl p-3 mt-2 font-mono text-[10px] text-white/30 space-y-0.5 leading-relaxed"
-                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div>VITE_FB_API_KEY=AIza...</div>
-                <div>VITE_FB_AUTH_DOMAIN=proje.firebaseapp.com</div>
-                <div>VITE_FB_PROJECT_ID=proje-adi</div>
-                <div>VITE_FB_STORAGE_BUCKET=proje.appspot.com</div>
-                <div>VITE_FB_MESSAGING_SENDER_ID=123...</div>
-                <div>VITE_FB_APP_ID=1:123...</div>
+          ? <p className="text-white/35 text-xs font-sans leading-relaxed">Fotoğraflar buluta senkronize ediliyor. Her cihazdan görünür.</p>
+          : <div className="space-y-3">
+              <div className="rounded-xl p-3 space-y-2" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <p className="text-white/55 text-xs font-sans font-semibold">1. Cloudinary — fotoğraf depolama (ücretsiz)</p>
+                <ol className="text-white/30 text-xs font-sans space-y-1 list-decimal list-inside">
+                  <li><a href="https://cloudinary.com/users/register_free" target="_blank" rel="noreferrer" className="text-sky-400/60 underline">cloudinary.com</a> → Email ile kayıt (kart yok)</li>
+                  <li>Dashboard → Cloud name'i kopyala</li>
+                  <li>Settings → Upload → Add unsigned preset → Preset name al</li>
+                  <li>Vercel'e ekle: <code className="text-amber-400/60">VITE_CLOUDINARY_CLOUD_NAME</code> ve <code className="text-amber-400/60">VITE_CLOUDINARY_UPLOAD_PRESET</code></li>
+                </ol>
+              </div>
+              <div className="rounded-xl p-3 space-y-2" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <p className="text-white/55 text-xs font-sans font-semibold">2. Firestore — veritabanı (ücretsiz)</p>
+                <ol className="text-white/30 text-xs font-sans space-y-1 list-decimal list-inside">
+                  <li><a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" className="text-sky-400/60 underline">console.firebase.google.com</a> → Yeni proje</li>
+                  <li>Firestore Database → Create → Test mode</li>
+                  <li>⚙️ Project Settings → Web uygulaması ekle → Config al</li>
+                  <li>Vercel'e 6 <code className="text-amber-400/60">VITE_FB_*</code> değişken ekle → Redeploy</li>
+                </ol>
               </div>
             </div>}
       </Card>

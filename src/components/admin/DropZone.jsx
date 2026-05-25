@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, ImagePlus, X, Check, Cloud, HardDrive } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
-import { uploadPhotoFile, uploadPhotoBase64 } from '../../lib/photoService.js'
+import { uploadPhotoFile, uploadPhotoBase64, isCloudinaryConfigured } from '../../lib/photoService.js'
 import { isFirebaseConfigured } from '../../lib/firebase.js'
 
 function generateId() {
@@ -108,11 +108,13 @@ export default function DropZone() {
 
   return (
     <div className="space-y-4">
-      {/* Firebase status */}
-      <div className="flex items-center gap-2 text-xs font-mono px-1">
-        {isFirebaseConfigured
-          ? <><Cloud size={11} className="text-green-400/60" /><span className="text-green-400/50">Bulut senkronizasyonu aktif — tüm cihazlarda görünür</span></>
-          : <><HardDrive size={11} className="text-white/20" /><span className="text-white/20">Sadece bu cihazda (Firebase kurulmadı)</span></>}
+      {/* Sync status */}
+      <div className="flex items-center gap-2 text-xs font-sans px-1">
+        {isCloudinaryConfigured && isFirebaseConfigured
+          ? <><Cloud size={11} className="text-green-400/60" /><span className="text-green-400/50">Cloudinary + Firestore aktif — tüm cihazlarda görünür</span></>
+          : isFirebaseConfigured
+            ? <><Cloud size={11} className="text-amber-400/60" /><span className="text-amber-400/50">Sadece Firestore (Cloudinary kurulmadı)</span></>
+          : <><HardDrive size={11} className="text-white/20" /><span className="text-white/20">Sadece bu cihazda (bulut kurulmadı)</span></>}
       </div>
       {/* Drop zone */}
       <motion.div
