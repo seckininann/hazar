@@ -29,25 +29,18 @@ function AppInner() {
     dispatch({ type: 'COMPLETE_INTRO' })
   }, [dispatch])
 
-  // Keyboard shortcut: Shift+A+D to go to admin
+  // Secret admin route: /#admin in the URL
   useEffect(() => {
-    const keys = new Set()
-    const onDown = (e) => {
-      keys.add(e.key)
-      if (keys.has('Shift') && keys.has('A') && keys.has('D')) {
-        if (phase === PHASES.MEMORY_UNIVERSE) {
-          dispatch({ type: 'SET_PHASE', payload: PHASES.CREATIVE_STUDIO })
-        }
+    const checkHash = () => {
+      if (window.location.hash === '#admin') {
+        dispatch({ type: 'SET_PHASE', payload: PHASES.CREATIVE_STUDIO })
+        history.replaceState(null, '', window.location.pathname)
       }
     }
-    const onUp = (e) => keys.delete(e.key)
-    window.addEventListener('keydown', onDown)
-    window.addEventListener('keyup', onUp)
-    return () => {
-      window.removeEventListener('keydown', onDown)
-      window.removeEventListener('keyup', onUp)
-    }
-  }, [phase, dispatch])
+    checkHash()
+    window.addEventListener('hashchange', checkHash)
+    return () => window.removeEventListener('hashchange', checkHash)
+  }, [dispatch])
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-void relative">
