@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Upload, List, BarChart2, Shield, Eye, EyeOff, Lock, AlertTriangle, Scan } from 'lucide-react'
+import { ArrowLeft, Upload, List, BarChart2, Shield, Eye, EyeOff, Lock, AlertTriangle, Scan, Settings } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 import DropZone from '../admin/DropZone.jsx'
 import PhotoTable from '../admin/PhotoTable.jsx'
@@ -187,6 +187,201 @@ function AdminAuthGate({ onSuccess }) {
   )
 }
 
+// ─── Admin Settings ────────────────────────────────────────────────────────────
+function AdminSettings() {
+  const [title, setTitle] = useState(() => localStorage.getItem('hazar_cover_title') || 'Özelimiz')
+  const [pw, setPw] = useState('')
+  const [pw2, setPw2] = useState('')
+  const [showPw, setShowPw] = useState(false)
+  const [messages, setMessages] = useState(() => {
+    try {
+      const s = localStorage.getItem('hazar_love_messages')
+      return s ? JSON.parse(s) : [
+        { id: '1', text: 'Seninle her an güzel 🖤', sub: 'her zaman, her yerde' },
+        { id: '2', text: 'Dünyanın en tatlı insanısın', sub: 'sadece sen biliyorsun' },
+        { id: '3', text: 'Seni çok seviyorum, Eda', sub: '— kalbimin derinliklerinden' },
+      ]
+    } catch { return [] }
+  })
+  const [saved, setSaved] = useState(null)
+
+  const saveTitle = () => {
+    localStorage.setItem('hazar_cover_title', title.trim() || 'Özelimiz')
+    flash('Başlık kaydedildi ✓')
+  }
+
+  const savePw = () => {
+    if (!pw || pw !== pw2) { flash('Şifreler eşleşmiyor ✗', true); return }
+    if (pw.length < 3) { flash('En az 3 karakter ✗', true); return }
+    localStorage.setItem('hazar_custom_password', pw)
+    setPw(''); setPw2('')
+    flash('Şifre güncellendi ✓')
+  }
+
+  const resetPw = () => {
+    localStorage.removeItem('hazar_custom_password')
+    flash('Varsayılan şifreye döndü ✓')
+  }
+
+  const saveMessages = () => {
+    localStorage.setItem('hazar_love_messages', JSON.stringify(messages))
+    flash('Mesajlar kaydedildi ✓')
+  }
+
+  const updateMsg = (id, field, val) =>
+    setMessages(ms => ms.map(m => m.id === id ? { ...m, [field]: val } : m))
+
+  const addMsg = () =>
+    setMessages(ms => [...ms, { id: Date.now().toString(), text: '', sub: '' }])
+
+  const removeMsg = (id) =>
+    setMessages(ms => ms.filter(m => m.id !== id))
+
+  const flash = (msg, isErr = false) => {
+    setSaved({ msg, err: isErr })
+    setTimeout(() => setSaved(null), 2500)
+  }
+
+  const cardStyle = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }
+
+  return (
+    <div className="space-y-5">
+
+      {/* Cover title */}
+      <div className="rounded-2xl p-5" style={cardStyle}>
+        <p className="text-white/50 text-xs font-mono tracking-widest uppercase mb-3">Kapak Başlığı</p>
+        <div className="flex gap-2">
+          <input
+            className="luxury-input flex-1 px-3 py-2 rounded-xl text-sm"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="Özelimiz"
+          />
+          <motion.button
+            className="px-4 py-2 rounded-xl text-xs font-mono tracking-wide"
+            style={{ background: 'rgba(212,160,122,0.12)', border: '1px solid rgba(212,160,122,0.25)', color: 'rgba(245,240,235,0.8)' }}
+            onClick={saveTitle}
+            whileTap={{ scale: 0.96 }}
+          >
+            Kaydet
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Password change */}
+      <div className="rounded-2xl p-5" style={cardStyle}>
+        <p className="text-white/50 text-xs font-mono tracking-widest uppercase mb-3">Giriş Şifresi</p>
+        <div className="space-y-2">
+          <div className="relative">
+            <input
+              className="luxury-input w-full px-3 py-2 rounded-xl text-sm pr-10"
+              type={showPw ? 'text' : 'password'}
+              value={pw}
+              onChange={e => setPw(e.target.value)}
+              placeholder="Yeni şifre"
+            />
+            <button
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50"
+              onClick={() => setShowPw(v => !v)}
+              type="button"
+            >
+              {showPw ? <EyeOff size={13} /> : <Eye size={13} />}
+            </button>
+          </div>
+          <input
+            className="luxury-input w-full px-3 py-2 rounded-xl text-sm"
+            type="password"
+            value={pw2}
+            onChange={e => setPw2(e.target.value)}
+            placeholder="Tekrar yaz"
+          />
+          <div className="flex gap-2">
+            <motion.button
+              className="flex-1 py-2 rounded-xl text-xs font-mono tracking-wide"
+              style={{ background: 'rgba(212,160,122,0.12)', border: '1px solid rgba(212,160,122,0.25)', color: 'rgba(245,240,235,0.8)' }}
+              onClick={savePw}
+              whileTap={{ scale: 0.96 }}
+            >
+              Şifreyi Güncelle
+            </motion.button>
+            <motion.button
+              className="px-3 py-2 rounded-xl text-xs font-mono tracking-wide"
+              style={{ background: 'rgba(200,60,60,0.08)', border: '1px solid rgba(200,60,60,0.2)', color: 'rgba(220,120,120,0.7)' }}
+              onClick={resetPw}
+              whileTap={{ scale: 0.96 }}
+              title="Varsayılan şifreye dön (hazar)"
+            >
+              Sıfırla
+            </motion.button>
+          </div>
+          <p className="text-white/20 text-xs font-mono">Varsayılan: <span className="text-rose-gold/40">hazar</span></p>
+        </div>
+      </div>
+
+      {/* Love messages */}
+      <div className="rounded-2xl p-5" style={cardStyle}>
+        <p className="text-white/50 text-xs font-mono tracking-widest uppercase mb-3">Sevgi Mesajları</p>
+        <div className="space-y-3">
+          {messages.map((m) => (
+            <div key={m.id} className="flex gap-2 items-start">
+              <div className="flex-1 space-y-1">
+                <input
+                  className="luxury-input w-full px-3 py-2 rounded-xl text-sm"
+                  value={m.text}
+                  onChange={e => updateMsg(m.id, 'text', e.target.value)}
+                  placeholder="Mesaj..."
+                />
+                <input
+                  className="luxury-input w-full px-3 py-1.5 rounded-xl text-xs"
+                  value={m.sub}
+                  onChange={e => updateMsg(m.id, 'sub', e.target.value)}
+                  placeholder="Alt yazı..."
+                />
+              </div>
+              <button
+                className="mt-1 text-red-400/40 hover:text-red-400/70 transition-colors text-lg leading-none"
+                onClick={() => removeMsg(m.id)}
+              >×</button>
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <motion.button
+              className="px-3 py-2 rounded-xl text-xs font-mono tracking-wide"
+              style={{ background: 'rgba(200,180,232,0.08)', border: '1px solid rgba(200,180,232,0.15)', color: 'rgba(200,180,232,0.7)' }}
+              onClick={addMsg}
+              whileTap={{ scale: 0.96 }}
+            >
+              + Ekle
+            </motion.button>
+            <motion.button
+              className="flex-1 py-2 rounded-xl text-xs font-mono tracking-wide"
+              style={{ background: 'rgba(212,160,122,0.12)', border: '1px solid rgba(212,160,122,0.25)', color: 'rgba(245,240,235,0.8)' }}
+              onClick={saveMessages}
+              whileTap={{ scale: 0.96 }}
+            >
+              Kaydet
+            </motion.button>
+          </div>
+        </div>
+      </div>
+
+      {/* Flash message */}
+      <AnimatePresence>
+        {saved && (
+          <motion.p
+            className={`text-xs font-mono text-center py-2 ${saved.err ? 'text-red-400/60' : 'text-green-400/70'}`}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            {saved.msg}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 // ─── Main CreativeStudio ──────────────────────────────────────────────────────
 export default function CreativeStudio() {
   const { state, dispatch } = useAppState()
@@ -205,6 +400,7 @@ export default function CreativeStudio() {
     { key: 'photos', label: 'Anılar', icon: List },
     { key: 'stats', label: 'İstatistik', icon: BarChart2 },
     { key: 'face', label: 'Yüz', icon: Scan },
+    { key: 'settings', label: 'Ayarlar', icon: Settings },
   ]
 
   return (
@@ -329,6 +525,19 @@ export default function CreativeStudio() {
                   Yüz Tanıma Ayarları
                 </p>
                 <FaceEnrollment />
+              </motion.div>
+            )}
+
+            {activeTab === 'settings' && (
+              <motion.div
+                key="settings"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+              >
+                <p className="text-white/30 text-xs font-mono tracking-widest uppercase mb-4">Ayarlar</p>
+                <AdminSettings />
               </motion.div>
             )}
           </AnimatePresence>

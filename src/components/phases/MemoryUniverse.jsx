@@ -4,11 +4,22 @@ import { useAppState } from '../../store/appState.jsx'
 import AudioPlayer from '../audio/AudioPlayer.jsx'
 import HeartEmitter from '../memory/HeartEmitter.jsx'
 
-const LOVE_MESSAGES = [
+const LS_TITLE_KEY = 'hazar_cover_title'
+const LS_MESSAGES_KEY = 'hazar_love_messages'
+
+const DEFAULT_MESSAGES = [
   { id: 'm1', text: 'Seninle her an güzel 🖤', sub: 'her zaman, her yerde' },
   { id: 'm2', text: 'Dünyanın en tatlı insanısın', sub: 'sadece sen biliyorsun' },
   { id: 'm3', text: 'Seni çok seviyorum, Eda', sub: '— kalbimin derinliklerinden' },
 ]
+
+function loadMessages() {
+  try {
+    const saved = localStorage.getItem(LS_MESSAGES_KEY)
+    const arr = saved ? JSON.parse(saved) : null
+    return Array.isArray(arr) && arr.length > 0 ? arr : DEFAULT_MESSAGES
+  } catch { return DEFAULT_MESSAGES }
+}
 
 function FeedPost({ photo, index }) {
   const [liked, setLiked] = useState(false)
@@ -155,6 +166,8 @@ export default function MemoryUniverse() {
   const { state, dispatch } = useAppState()
   const photos = state.photos || []
   const feedRef = useRef(null)
+  const coverTitle = localStorage.getItem(LS_TITLE_KEY) || 'Özelimiz'
+  const LOVE_MESSAGES = loadMessages()
 
   const handleLogout = useCallback(() => {
     dispatch({ type: 'RESET_TO_INTRO' })
@@ -194,14 +207,7 @@ export default function MemoryUniverse() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
           >
-            <motion.img
-              src="/assets/beetle.png"
-              alt=""
-              className="w-10 h-10 object-contain mx-auto mb-4 opacity-60"
-              animate={{ rotate: [0, 8, -8, 0] }}
-              transition={{ repeat: Infinity, duration: 5 }}
-            />
-            <h1 className="text-shimmer font-display text-2xl font-bold tracking-wide mb-1">Eda İçin</h1>
+            <h1 className="text-shimmer font-display text-3xl font-bold tracking-wide mb-1">{coverTitle}</h1>
             <p className="text-white/20 text-xs font-mono tracking-[0.4em] uppercase">anılar & sevgi</p>
           </motion.div>
 
@@ -253,13 +259,16 @@ export default function MemoryUniverse() {
         </div>
       </div>
 
-      {/* Logout — subtle, top-right */}
+      {/* Logout button */}
       <motion.button
-        className="absolute top-4 right-4 z-30 text-white/15 text-xs font-mono tracking-widest hover:text-white/40 transition-colors px-2 py-1"
+        className="absolute top-4 right-4 z-30 text-white/35 text-xs font-mono tracking-widest hover:text-rose-gold/70 transition-colors px-3 py-1.5 rounded-lg"
+        style={{ border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}
         onClick={handleLogout}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 2 }}
+        transition={{ delay: 1.5 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         title="Çıkış"
       >
         çıkış ×

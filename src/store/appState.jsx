@@ -70,7 +70,9 @@ function reducer(state, action) {
       return { ...state, phase: PHASES.PREMIUM_GATE }
 
     case 'ATTEMPT_AUTH': {
-      if (action.payload === MAIN_PASSWORD) {
+      const customPw = localStorage.getItem('hazar_custom_password')
+      const validPw = customPw || MAIN_PASSWORD
+      if (action.payload === validPw) {
         if (navigator.vibrate) navigator.vibrate([50, 30, 50, 30, 100])
         return { ...state, isAuthenticated: true, phase: PHASES.MEMORY_UNIVERSE }
       }
