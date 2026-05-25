@@ -152,9 +152,13 @@ function LoveCard({ msg, index }) {
 }
 
 export default function MemoryUniverse() {
-  const { state } = useAppState()
+  const { state, dispatch } = useAppState()
   const photos = state.photos || []
   const feedRef = useRef(null)
+
+  const handleLogout = useCallback(() => {
+    dispatch({ type: 'RESET_TO_INTRO' })
+  }, [dispatch])
 
   // Interleave photos and love messages
   const feed = []
@@ -248,6 +252,18 @@ export default function MemoryUniverse() {
           </motion.div>
         </div>
       </div>
+
+      {/* Logout — subtle, top-right */}
+      <motion.button
+        className="absolute top-4 right-4 z-30 text-white/15 text-xs font-mono tracking-widest hover:text-white/40 transition-colors px-2 py-1"
+        onClick={handleLogout}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2 }}
+        title="Çıkış"
+      >
+        çıkış ×
+      </motion.button>
 
       {/* Heart emitter button */}
       <HeartEmitter />

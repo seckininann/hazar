@@ -32,12 +32,12 @@ const initialState = {
 
 function loadFromLS() {
   try {
-    const savedPhase = localStorage.getItem(LS_KEY_PHASE)
     const savedPhotos = JSON.parse(localStorage.getItem(LS_KEY_PHOTOS) || '[]')
     const savedReactions = JSON.parse(localStorage.getItem(LS_KEY_REACTIONS) || '{}')
     const isLocked = localStorage.getItem(LS_KEY_LOCKED) === 'true'
     return {
-      phase: savedPhase && Object.values(PHASES).includes(savedPhase) ? savedPhase : PHASES.CINEMATIC_INTRO,
+      // Phase always resets to intro on every page load
+      phase: PHASES.CINEMATIC_INTRO,
       photos: Array.isArray(savedPhotos) ? savedPhotos : [],
       heartBurstCount: savedReactions.heartBurstCount || 0,
       smileCount: savedReactions.smileCount || 0,
@@ -51,7 +51,6 @@ function loadFromLS() {
 
 function saveToLS(state) {
   try {
-    localStorage.setItem(LS_KEY_PHASE, state.phase)
     localStorage.setItem(LS_KEY_PHOTOS, JSON.stringify(state.photos))
     localStorage.setItem(LS_KEY_REACTIONS, JSON.stringify({
       heartBurstCount: state.heartBurstCount,
