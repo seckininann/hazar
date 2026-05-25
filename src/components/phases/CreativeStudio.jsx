@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Upload, List, BarChart2, Shield, Eye, EyeOff, Lock, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Upload, List, BarChart2, Shield, Eye, EyeOff, Lock, AlertTriangle, Scan } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 import DropZone from '../admin/DropZone.jsx'
 import PhotoTable from '../admin/PhotoTable.jsx'
 import TelemetryCharts from '../admin/TelemetryCharts.jsx'
+import FaceEnrollment from '../admin/FaceEnrollment.jsx'
 import CharSplitText from '../ui/CharSplitText.jsx'
 
 // ─── Lockdown screen ──────────────────────────────────────────────────────────
@@ -203,6 +204,7 @@ export default function CreativeStudio() {
     { key: 'upload', label: 'Yükle', icon: Upload },
     { key: 'photos', label: 'Anılar', icon: List },
     { key: 'stats', label: 'İstatistik', icon: BarChart2 },
+    { key: 'face', label: 'Yüz', icon: Scan },
   ]
 
   return (
@@ -312,6 +314,21 @@ export default function CreativeStudio() {
                   Telemetri & İstatistikler
                 </p>
                 <TelemetryCharts />
+              </motion.div>
+            )}
+
+            {activeTab === 'face' && (
+              <motion.div
+                key="face"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+              >
+                <p className="text-white/30 text-xs font-mono tracking-widest uppercase mb-4">
+                  Yüz Tanıma Ayarları
+                </p>
+                <FaceEnrollment />
               </motion.div>
             )}
           </AnimatePresence>

@@ -6,5 +6,15 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true
+  },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'face-api': ['face-api.js'],
+        }
+      }
+    }
   }
 })

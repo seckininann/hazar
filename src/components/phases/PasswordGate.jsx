@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff, Heart, Lock, CameraOff } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 import { useProximity } from '../../hooks/useProximity.js'
+import { useFaceRecognition } from '../../hooks/useFaceRecognition.js'
 import CharSplitText from '../ui/CharSplitText.jsx'
 
 // ─── Canvas background ────────────────────────────────────────────────────────
@@ -190,44 +191,84 @@ function FaceIDScanner({ onComplete, cameraStream }) {
   const [scanProgress, setScanProgress] = useState(0)
   const [scanLine, setScanLine] = useState(0)
   const [statusText, setStatusText] = useState('Eda...')
+  const [recognitionState, setRecognitionState] = useState('waiting') // waiting|searching|matched|no_reference
+  const matchCountRef = useRef(0)
+  const completedRef = useRef(false)
 
+  const { modelsLoaded, hasEnrolled, recognizeFrame } = useFaceRecognition()
+
+  // Attach camera stream to video element
   useEffect(() => {
     if (videoRef.current && cameraStream) {
       videoRef.current.srcObject = cameraStream
       videoRef.current.play().catch(() => {})
     }
-    return () => {
-      if (cameraStream) cameraStream.getTracks().forEach(t => t.stop())
-    }
   }, [cameraStream])
 
+  // Scan-line animation (always runs)
   useEffect(() => {
-    const statuses = [
-      { p: 0.14, t: 'Kalbim seni hissediyor...' },
-      { p: 0.30, t: 'Gülüşün eşleşti 🌹' },
-      { p: 0.48, t: 'Gözlerin dünyanın en güzeli...' },
-      { p: 0.65, t: 'Seni çok seviyorum, Eda' },
-      { p: 0.82, t: 'Hoş geldin kraliçem 🌸' },
-      { p: 0.95, t: 'Her zaman seninle...' },
-      { p: 1.0,  t: '✨ Tanındın, Eda ✨' },
-    ]
+    const id = setInterval(() => setScanLine(l => (l + 1.5) % 100), 40)
+    return () => clearInterval(id)
+  }, [])
 
-    const interval = setInterval(() => {
-      setScanProgress(p => {
-        const next = Math.min(p + 0.004, 1)
-        const status = statuses.find(s => s.p >= next && s.p > p)
-        if (status) setStatusText(status.t)
-        if (next >= 1) {
-          clearInterval(interval)
-          setTimeout(onComplete, 1200)
+  // Recognition loop — runs every 900ms once models are ready
+  useEffect(() => {
+    if (!modelsLoaded) return
+
+    const stored = localStorage.getItem('hazar_face_descriptors')
+    if (!stored) {
+      // No reference photos enrolled → auto-pass after romantic delay
+      setRecognitionState('no_reference')
+      setStatusText('Kalbim seni hissediyor...')
+      let p = 0
+      const id = setInterval(() => {
+        p = Math.min(p + 0.005, 1)
+        setScanProgress(p)
+        if (p >= 1 && !completedRef.current) {
+          completedRef.current = true
+          clearInterval(id)
+          setStatusText('✨ Hoş geldin, Eda ✨')
+          setTimeout(onComplete, 1000)
         }
-        return next
-      })
-      setScanLine(l => (l + 1.5) % 100)
-    }, 40)
+      }, 40)
+      return () => clearInterval(id)
+    }
 
-    return () => clearInterval(interval)
-  }, [onComplete])
+    setRecognitionState('searching')
+    setStatusText('Seni arıyorum...')
+
+    const recogInterval = setInterval(async () => {
+      if (completedRef.current) return
+      const result = await recognizeFrame(videoRef.current)
+
+      if (result === 'matched') {
+        matchCountRef.current += 1
+        setRecognitionState('matched')
+
+        const matchMessages = ['Kalbim seni hissetti 🌹', 'Gülüşün eşleşti...', 'Eda, sensin! 🌸', 'Seni seviyorum ♡']
+        setStatusText(matchMessages[Math.min(matchCountRef.current - 1, matchMessages.length - 1)])
+
+        // Need 3 consecutive matches to confirm
+        if (matchCountRef.current >= 3 && !completedRef.current) {
+          completedRef.current = true
+          clearInterval(recogInterval)
+          setScanProgress(1)
+          setStatusText('✨ Tanındın, Eda ✨')
+          setTimeout(onComplete, 1200)
+        } else {
+          setScanProgress(Math.min(matchCountRef.current / 3, 0.95))
+        }
+      } else {
+        if (result === 'no_face') setStatusText('Yüzünü kameraya göster...')
+        else if (result === 'no_match') setStatusText('Seni tanıyamadım... biraz daha yakın gel')
+        matchCountRef.current = Math.max(0, matchCountRef.current - 1)
+        setScanProgress(p => Math.max(0, p - 0.05))
+        setRecognitionState('searching')
+      }
+    }, 900)
+
+    return () => clearInterval(recogInterval)
+  }, [modelsLoaded, recognizeFrame, onComplete])
 
   return (
     <motion.div
@@ -237,6 +278,18 @@ function FaceIDScanner({ onComplete, cameraStream }) {
       exit={{ opacity: 0, scale: 0.8 }}
       transition={{ duration: 0.6 }}
     >
+      {/* Model loading indicator */}
+      {!modelsLoaded && (
+        <motion.div className="flex items-center gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.div
+            className="w-2.5 h-2.5 rounded-full border border-rose-gold/50 border-t-rose-gold"
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+          />
+          <span className="text-white/30 text-xs font-mono tracking-widest">hazırlanıyor...</span>
+        </motion.div>
+      )}
+
       {/* Rose-framed circular camera */}
       <div className="relative w-52 h-52 md:w-60 md:h-60">
 
