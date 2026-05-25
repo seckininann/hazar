@@ -1,19 +1,18 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Heart } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 
-const HEARTS = [
-  '❤️','�','�','�','💝','💕','�','💞','🩷','�',
-  '❤️‍🔥','�','💌','�','�',
+const HEART_COLORS = [
+  '#e84393', '#ff6b9d', '#ff4d7e', '#c94fbf',
+  '#f06292', '#ff80ab', '#ec407a', '#d81b8c',
 ]
-const SIZES = [22, 26, 30, 24, 20, 28, 34, 26, 22, 32]
+const SIZES = [22, 26, 30, 24, 28, 34, 20, 32]
 
-function FloatingHeart({ x, emoji, onDone }) {
+function FloatingHeart({ x, color, size, onDone }) {
   const dur = 2.4 + Math.random() * 1.8
-  const size = SIZES[Math.floor(Math.random() * SIZES.length)]
   const drift = (Math.random() - 0.5) * 80
   const spin  = (Math.random() - 0.5) * 40
-  const wobble = [0, drift * 0.4, drift]
 
   useEffect(() => {
     const t = setTimeout(onDone, (dur + 0.4) * 1000)
@@ -22,19 +21,20 @@ function FloatingHeart({ x, emoji, onDone }) {
 
   return (
     <motion.div
-      className="fixed pointer-events-none z-50 select-none leading-none"
-      style={{ left: x, bottom: 90, fontSize: size }}
+      className="fixed pointer-events-none z-50 select-none"
+      style={{ left: x, bottom: 90 }}
       initial={{ opacity: 0, y: 0, scale: 0.2, rotate: 0 }}
       animate={{
         opacity: [0, 1, 1, 1, 0],
         y:       [0, -90, -210, -340, -440],
-        x:       wobble,
+        x:       [0, drift * 0.4, drift],
         scale:   [0.2, 1.15, 1.0, 0.85, 0.6],
         rotate:  [0, spin * 0.3, spin * 0.7, spin, spin * 1.2],
       }}
       transition={{ duration: dur, ease: 'easeOut', times: [0, 0.08, 0.4, 0.75, 1] }}
     >
-      {emoji}
+      <Heart size={size} fill={color} color={color}
+        style={{ filter: `drop-shadow(0 0 6px ${color}88)` }} />
     </motion.div>
   )
 }
@@ -48,9 +48,10 @@ export default function HeartEmitter() {
 
   const spawnOne = useCallback((clientX) => {
     const x = (clientX ?? window.innerWidth / 2) + (Math.random() - 0.5) * 30 - 12
-    const emoji = HEARTS[Math.floor(Math.random() * HEARTS.length)]
+    const color = HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)]
+    const size  = SIZES[Math.floor(Math.random() * SIZES.length)]
     const id = nextId.current++
-    setHearts(prev => [...prev, { id, x, emoji }])
+    setHearts(prev => [...prev, { id, x, color, size }])
     dispatch({ type: 'INCREMENT_HEARTS', payload: 1 })
   }, [dispatch])
 
@@ -90,7 +91,8 @@ export default function HeartEmitter() {
           <FloatingHeart
             key={h.id}
             x={h.x}
-            emoji={h.emoji}
+            color={h.color}
+            size={h.size}
             onDone={() => removeHeart(h.id)}
           />
         ))}

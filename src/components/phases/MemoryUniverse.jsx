@@ -284,58 +284,50 @@ function LoveSlide({ msg }) {
   )
 }
 
-// ─── Floating music pill — Instagram sticker style ───────────────────────────
+// ─── Music control — centered bottom bar ─────────────────────────────────────
 function MusicControl({ playing, trackEnded, currentTrack, onToggle, onNext }) {
-  const [expanded, setExpanded] = useState(false)
-  const track = TRACKS[currentTrack]
-
   return (
-    <div className="absolute bottom-14 right-4 z-40 flex flex-col items-end gap-2">
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            className="rounded-2xl overflow-hidden flex flex-col"
-            style={{ background: 'rgba(12,11,18,0.92)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)', minWidth: 140 }}
-            initial={{ opacity: 0, y: 6, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-          >
-            <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-              <span className="text-white/40 text-xs font-sans font-medium">Melodiler</span>
-              <button onClick={() => setExpanded(false)} className="text-white/25 hover:text-white/60 transition-colors">
-                <X size={12} />
-              </button>
-            </div>
-            {TRACKS.map((t, i) => (
-              <button key={i}
-                className="flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-white/5"
-                style={{ borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined }}
-                onClick={() => { onNext(i); setExpanded(false) }}>
-                {currentTrack === i && playing
-                  ? <div className="flex items-end gap-0.5 h-3 w-3">
-                      {[1,2,3].map(j => (
-                        <div key={j} className="w-0.5 rounded-full bg-rose-gold/85"
-                          style={{ animation: `eqBar 0.7s ${j*0.15}s ease-in-out infinite` }} />
-                      ))}
-                    </div>
-                  : <Music2 size={12} style={{ color: currentTrack === i ? 'rgba(212,160,122,0.8)' : 'rgba(255,255,255,0.3)' }} />}
-                <span className={`text-xs font-sans ${currentTrack === i ? 'text-white/80 font-medium' : 'text-white/40'}`}>
-                  {t.title}
-                </span>
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-40"
+      style={{ transform: 'translateX(-50%)' }}>
+      <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl"
+        style={{
+          background: 'rgba(10,9,18,0.85)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        }}>
 
-      {/* Main pill */}
-      <div className="flex items-center gap-2 px-2.5 py-2 rounded-2xl"
-        style={{ background: 'rgba(12,11,18,0.88)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}>
-        {/* Play/pause button */}
+        {/* Music icon */}
+        <Music2 size={15} style={{ color: playing ? 'rgba(212,160,122,0.85)' : 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
+
+        {/* Track dots — tap to jump to track */}
+        <div className="flex items-center gap-1.5">
+          {TRACKS.map((t, i) => (
+            <button key={i}
+              className="flex flex-col items-center gap-1 group"
+              onClick={() => onNext(i)}>
+              <div className="rounded-full transition-all duration-200"
+                style={{
+                  width: i === currentTrack ? 20 : 6,
+                  height: 6,
+                  background: i === currentTrack
+                    ? 'rgba(212,160,122,0.9)'
+                    : 'rgba(255,255,255,0.2)',
+                }} />
+            </button>
+          ))}
+        </div>
+
+        {/* Track name */}
+        <span className="text-xs font-sans font-medium w-16 truncate"
+          style={{ color: playing ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.3)' }}>
+          {trackEnded ? 'Bitti' : TRACKS[currentTrack].title}
+        </span>
+
+        {/* Play / pause */}
         <motion.button
-          className="w-7 h-7 rounded-xl flex items-center justify-center"
-          style={{ background: playing ? 'rgba(212,160,122,0.18)' : 'rgba(255,255,255,0.07)' }}
+          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: playing ? 'rgba(212,160,122,0.2)' : 'rgba(255,255,255,0.08)' }}
           onClick={onToggle} whileTap={{ scale: 0.85 }}>
           {playing
             ? <div className="flex items-end gap-0.5 h-3.5">
@@ -344,20 +336,16 @@ function MusicControl({ playing, trackEnded, currentTrack, onToggle, onNext }) {
                     style={{ animation: `eqBar 0.65s ${j*0.15}s ease-in-out infinite` }} />
                 ))}
               </div>
-            : <Play size={11} style={{ color: 'rgba(255,255,255,0.6)', marginLeft: 1 }} />}
+            : <Play size={12} style={{ color: 'rgba(255,255,255,0.65)', marginLeft: 1 }} />}
         </motion.button>
 
-        {/* Track name */}
-        <button className="text-xs font-sans text-white/45 hover:text-white/70 transition-colors max-w-[70px] truncate"
-          onClick={() => setExpanded(e => !e)}>
-          {trackEnded ? 'Bitti' : track.title}
-        </button>
-
         {/* Skip */}
-        <button className="text-white/25 hover:text-white/55 transition-colors"
-          onClick={() => onNext((currentTrack + 1) % TRACKS.length)}>
-          <SkipForward size={12} />
-        </button>
+        <motion.button
+          className="flex-shrink-0 text-white/30 hover:text-white/60 transition-colors"
+          onClick={() => onNext((currentTrack + 1) % TRACKS.length)}
+          whileTap={{ scale: 0.85 }}>
+          <SkipForward size={14} />
+        </motion.button>
       </div>
     </div>
   )
