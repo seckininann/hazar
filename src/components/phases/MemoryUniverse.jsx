@@ -36,7 +36,7 @@ const CSS = `
 *, *::before, *::after { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 html, body { overscroll-behavior: none; }
 @keyframes eq       { 0%,100%{ height:30% } 50%{ height:100% } }
-@keyframes ticker   { 0%{ transform:translateX(-120%) } 100%{ transform:translateX(120vw) } }
+@keyframes ticker   { from{ transform:translateX(0) } to{ transform:translateX(-50%) } }
 @keyframes twinkle  { 0%,100%{ opacity:.12; transform:scale(1) } 50%{ opacity:.55; transform:scale(1.4) } }
 @keyframes drift    { 0%,100%{ transform:translate(0,0) } 33%{ transform:translate(4px,-8px) } 66%{ transform:translate(-5px,4px) } }
 @keyframes shimmer  { 0%{ background-position:-200% center } 100%{ background-position:200% center } }
@@ -100,21 +100,20 @@ function HeroSlide({ title }) {
           initial={{ scaleX:0 }} animate={{ scaleX:1 }} transition={{ delay:1.1 }} />
       </div>
 
-      {/* Ticker */}
-      <div style={{ position:'absolute', overflow:'hidden', pointerEvents:'none', width:'100%', bottom:95, height:20 }}>
-        {[0,1].map(i => (
-          <div key={i} style={{
-            position:'absolute', top:0, display:'flex', alignItems:'center', whiteSpace:'nowrap', gap:28,
-            animation:`ticker ${22+i*11}s ${i*11}s linear infinite`,
-          }}>
-            {TICKER.map((w,j) => (
-              <span key={j} style={{
-                fontStyle:'italic', fontSize:11.5, letterSpacing:'0.05em',
-                color: w==='✦' ? 'rgba(244,184,204,.45)' : 'rgba(255,255,255,.24)',
-              }}>{w}</span>
-            ))}
-          </div>
-        ))}
+      {/* Ticker — single seamless row */}
+      <div style={{ position:'absolute', overflow:'hidden', pointerEvents:'none', width:'100%', bottom:128, height:18 }}>
+        <div style={{
+          display:'flex', alignItems:'center', whiteSpace:'nowrap', gap:32,
+          animation:'ticker 26s linear infinite',
+          width:'max-content',
+        }}>
+          {[...TICKER,...TICKER].map((w,j) => (
+            <span key={j} style={{
+              fontStyle:'italic', fontSize:11.5, letterSpacing:'0.05em',
+              color: w==='✦' ? 'rgba(244,184,204,.45)' : 'rgba(255,255,255,.24)',
+            }}>{w}</span>
+          ))}
+        </div>
       </div>
     </div>
   )
