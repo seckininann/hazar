@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trash2, Edit3, Check, X, Eye, Star } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
+import { deletePhoto as fbDelete, updateCaption as fbUpdateCaption } from '../../lib/photoService.js'
 
 export default function PhotoTable() {
   const { state, dispatch } = useAppState()
@@ -27,6 +28,7 @@ export default function PhotoTable() {
   const commitEdit = useCallback(() => {
     if (!editingId) return
     dispatch({ type: 'UPDATE_PHOTO_CAPTION', payload: { id: editingId, caption: editCaption } })
+    fbUpdateCaption(editingId, editCaption).catch(() => {})
     setEditingId(null)
   }, [editingId, editCaption, dispatch])
 
@@ -37,6 +39,7 @@ export default function PhotoTable() {
 
   const handleDelete = useCallback((id) => {
     dispatch({ type: 'DELETE_PHOTO', payload: id })
+    fbDelete(id).catch(() => {})
     if (navigator.vibrate) navigator.vibrate(30)
   }, [dispatch])
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Play, Pause, Music2, SkipForward } from 'lucide-react'
+import { Play, Music2, SkipForward } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 import HeartEmitter from '../memory/HeartEmitter.jsx'
 
@@ -77,7 +77,7 @@ function ScrollHint() {
 }
 
 // ─── Hero slide ───────────────────────────────────────────────────────────────
-function HeroSlide({ coverTitle, musicPlaying, trackEnded, onMusicToggle }) {
+function HeroSlide({ coverTitle }) {
   const heroBg = localStorage.getItem(LS_HERO_KEY) || '/assets/couple.jpg'
   return (
     <div className="relative flex-shrink-0 h-full snap-start overflow-hidden"
@@ -119,48 +119,6 @@ function HeroSlide({ coverTitle, musicPlaying, trackEnded, onMusicToggle }) {
           — seninle her şey anlamlı
         </motion.p>
 
-        {/* Music button */}
-        <motion.button
-          className="flex items-center gap-3 px-6 py-3 rounded-full"
-          style={{
-            background: musicPlaying ? 'rgba(212,160,122,0.2)' : 'rgba(255,255,255,0.1)',
-            border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(16px)',
-          }}
-          onClick={onMusicToggle}
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.5 }}
-          whileTap={{ scale: 0.94 }}>
-          {trackEnded ? (
-            <>
-              <span className="text-rose-gold/70 text-base">🎵</span>
-              <span className="text-white/55 text-xs font-mono tracking-wider">Tekrar Çal</span>
-            </>
-          ) : musicPlaying ? (
-            <>
-              <div className="flex items-end gap-0.5 h-4">
-                {[1,2,3,4].map(j => (
-                  <div key={j} className="w-1 rounded-full bg-rose-gold/85"
-                    style={{ animation: `eqBar 0.7s ${j * 0.12}s ease-in-out infinite` }} />
-                ))}
-              </div>
-              <span className="text-white/55 text-xs font-mono tracking-wider">Duraklat</span>
-            </>
-          ) : (
-            <>
-              <Play size={14} className="text-white/60 ml-0.5" />
-              <span className="text-white/55 text-xs font-mono tracking-wider">Müzik Başlat</span>
-            </>
-          )}
-        </motion.button>
-
-        {/* Track ended badge */}
-        <AnimatePresence>
-          {trackEnded && (
-            <motion.p className="mt-3 text-white/35 text-xs font-mono tracking-wider"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              ♪ şarkı bitti
-            </motion.p>
-          )}
-        </AnimatePresence>
       </div>
 
       <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
@@ -306,129 +264,81 @@ function LoveSlide({ msg }) {
   )
 }
 
-// ─── Music slide ──────────────────────────────────────────────────────────────
-function MusicSlide({ audioRef, playing, trackEnded, onToggle, currentTrack, onSelectTrack }) {
-  const [progress, setProgress] = useState(0)
-  const [duration, setDuration] = useState(0)
-  const [currentTime, setCurrentTime] = useState(0)
-
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    const onTime = () => {
-      if (audio.duration) {
-        setCurrentTime(audio.currentTime)
-        setProgress(audio.currentTime / audio.duration)
-      }
-    }
-    const onMeta = () => setDuration(audio.duration || 0)
-    audio.addEventListener('timeupdate', onTime)
-    audio.addEventListener('loadedmetadata', onMeta)
-    audio.addEventListener('durationchange', onMeta)
-    return () => {
-      audio.removeEventListener('timeupdate', onTime)
-      audio.removeEventListener('loadedmetadata', onMeta)
-      audio.removeEventListener('durationchange', onMeta)
-    }
-  }, [audioRef])
-
-  const fmt = s => `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`
-
-  const handleSeek = e => {
-    const audio = audioRef.current
-    if (!audio || !duration) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    audio.currentTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * duration
-  }
-
-  const selectTrack = i => {
-    const audio = audioRef.current
-    if (!audio) return
-    onSelectTrack(i)
-    audio.src = TRACKS[i].src
-    audio.load()
-    if (playing) audio.play().catch(() => {})
-  }
+// ─── Floating music control ───────────────────────────────────────────────────
+function MusicControl({ audioRef, playing, trackEnded, currentTrack, onToggle, onNext }) {
+  const [expanded, setExpanded] = useState(false)
+  const track = TRACKS[currentTrack]
 
   return (
-    <div className="relative flex-shrink-0 h-full snap-start flex items-center justify-center"
-      style={{ width: '100vw', background: 'linear-gradient(160deg,#07060e 0%,#0d0812 100%)' }}>
-      <div className="absolute inset-x-0 top-1/3 h-64 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at 50% 0%,rgba(200,180,232,0.08),transparent 65%)' }} />
+    <div className="absolute bottom-16 right-4 z-40 flex flex-col items-end gap-2">
+      {/* Track list popup */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            className="flex flex-col gap-1.5 items-end"
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            transition={{ duration: 0.18 }}
+          >
+            {TRACKS.map((t, i) => (
+              <button key={i}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono transition-all"
+                style={currentTrack === i ? {
+                  background: 'rgba(212,160,122,0.18)',
+                  border: '1px solid rgba(212,160,122,0.3)',
+                  color: 'rgba(212,160,122,0.9)',
+                } : {
+                  background: 'rgba(0,0,0,0.5)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.45)',
+                  backdropFilter: 'blur(12px)',
+                }}
+                onClick={() => { onNext(i); setExpanded(false) }}>
+                {currentTrack === i && playing
+                  ? <div className="flex items-end gap-0.5 h-3 mr-0.5">
+                      {[1,2,3].map(j => (
+                        <div key={j} className="w-0.5 rounded-full bg-rose-gold/85"
+                          style={{ animation: `eqBar 0.7s ${j*0.15}s ease-in-out infinite` }} />
+                      ))}
+                    </div>
+                  : <Music2 size={10} />}
+                {t.title}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="relative z-10 w-full max-w-xs px-6">
-        <div className="text-center mb-7">
-          <div className="text-4xl mb-3 select-none">🎵</div>
-          <h2 className="font-display text-xl text-white/70 mb-1">Müziklerimiz</h2>
-          <p className="text-white/20 text-xs font-mono tracking-[0.3em]">3 melodi</p>
-        </div>
-
-        {/* Track list */}
-        <div className="space-y-2 mb-6">
-          {TRACKS.map((t, i) => (
-            <button key={i}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all"
-              style={currentTrack === i ? {
-                background: 'linear-gradient(135deg,rgba(212,160,122,0.13),rgba(200,180,232,0.08))',
-                border: '1px solid rgba(212,160,122,0.25)',
-              } : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
-              onClick={() => selectTrack(i)}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={currentTrack === i
-                  ? { background: 'rgba(212,160,122,0.15)', border: '1px solid rgba(212,160,122,0.25)' }
-                  : { background: 'rgba(255,255,255,0.04)' }}>
-                {currentTrack === i && playing ? (
-                  <div className="flex items-end gap-0.5 h-3.5">
-                    {[1,2,3].map(j => (
-                      <div key={j} className="w-0.5 rounded-full bg-rose-gold/85"
-                        style={{ animation: `eqBar 0.7s ${j*0.15}s ease-in-out infinite` }} />
-                    ))}
-                  </div>
-                ) : (
-                  <Music2 size={13} style={{ color: currentTrack === i ? 'rgba(212,160,122,0.75)' : 'rgba(255,255,255,0.25)' }} />
-                )}
+      {/* Main pill */}
+      <div className="flex items-center gap-1.5 rounded-full px-2 py-1.5"
+        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)' }}>
+        {/* Play/pause */}
+        <motion.button
+          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: playing ? 'rgba(212,160,122,0.2)' : 'rgba(255,255,255,0.07)' }}
+          onClick={onToggle} whileTap={{ scale: 0.88 }}>
+          {playing
+            ? <div className="flex items-end gap-0.5 h-3">
+                {[1,2,3].map(j => (
+                  <div key={j} className="w-0.5 rounded-full bg-rose-gold/85"
+                    style={{ animation: `eqBar 0.65s ${j*0.15}s ease-in-out infinite` }} />
+                ))}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-display truncate ${currentTrack === i ? 'text-white/78' : 'text-white/32'}`}>{t.title}</p>
-                <p className="text-[10px] font-mono text-white/18 truncate">{t.label}</p>
-              </div>
-              {currentTrack === i && (
-                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ background: playing ? 'rgba(212,160,122,0.8)' : 'rgba(255,255,255,0.18)' }} />
-              )}
-            </button>
-          ))}
-        </div>
+            : <Play size={10} style={{ color: 'rgba(255,255,255,0.55)', marginLeft: 1 }} />}
+        </motion.button>
 
-        {/* Player */}
-        <div className="rounded-2xl p-4"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="h-1.5 bg-white/5 rounded-full cursor-pointer overflow-hidden mb-2" onClick={handleSeek}>
-            <div className="h-full rounded-full transition-all"
-              style={{ width: `${progress * 100}%`, background: 'linear-gradient(90deg,#d4a07a,#c8b4e8)' }} />
-          </div>
-          <div className="flex justify-between text-[10px] font-mono text-white/20 mb-3">
-            <span>{fmt(currentTime)}</span><span>{fmt(duration)}</span>
-          </div>
-          <div className="flex justify-center items-center gap-3">
-            <motion.button
-              className="relative w-12 h-12 rounded-full flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg,rgba(212,160,122,0.2),rgba(200,180,232,0.13))', border: '1px solid rgba(212,160,122,0.28)' }}
-              onClick={onToggle} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }}>
-              {playing
-                ? <Pause size={17} style={{ color: 'rgba(212,160,122,0.9)' }} />
-                : <Play size={17} style={{ color: 'rgba(212,160,122,0.9)', marginLeft: 2 }} />}
-            </motion.button>
-            {/* Skip to next */}
-            <button className="p-2 text-white/25 hover:text-white/55 transition-colors"
-              onClick={() => selectTrack((currentTrack + 1) % TRACKS.length)}>
-              <SkipForward size={15} />
-            </button>
-          </div>
-          {trackEnded && (
-            <p className="text-center text-white/30 text-[10px] font-mono mt-2">♪ şarkı bitti · sonraki için → ok</p>
-          )}
-        </div>
+        {/* Track name — tap to expand */}
+        <button className="text-[10px] font-mono text-white/38 max-w-[72px] truncate"
+          onClick={() => setExpanded(e => !e)}>
+          {trackEnded ? '♪ bitti' : track.title}
+        </button>
+
+        {/* Next */}
+        <button className="text-white/22 hover:text-white/55 transition-colors"
+          onClick={() => onNext((currentTrack + 1) % TRACKS.length)}>
+          <SkipForward size={10} />
+        </button>
       </div>
     </div>
   )
@@ -477,7 +387,7 @@ export default function MemoryUniverse() {
   })
   if (photos.length === 0)
     LOVE_MESSAGES.forEach(msg => slides.push({ type: 'love', data: msg, key: `l-${msg.id}` }))
-  const totalSlides = 1 + slides.length + 1
+  const totalSlides = 1 + slides.length
 
   // Auto-hide hint
   useEffect(() => {
@@ -580,17 +490,12 @@ export default function MemoryUniverse() {
           touchAction: 'pan-x',
         }}
       >
-        <HeroSlide
-          coverTitle={coverTitle} musicPlaying={musicPlaying}
-          trackEnded={trackEnded} onMusicToggle={toggleMusic} />
+        <HeroSlide coverTitle={coverTitle} />
         {slides.map(slide =>
           slide.type === 'photo'
             ? <PhotoSlide key={slide.key} photo={slide.data} />
             : <LoveSlide key={slide.key} msg={slide.data} />
         )}
-        <MusicSlide
-          audioRef={audioRef} playing={musicPlaying} trackEnded={trackEnded}
-          onToggle={toggleMusic} currentTrack={currentTrack} onSelectTrack={selectTrack} />
       </div>
 
       {/* Scroll hint overlay */}
@@ -611,23 +516,11 @@ export default function MemoryUniverse() {
         ← çıkış
       </motion.button>
 
-      {/* Floating music badge */}
-      <AnimatePresence>
-        {musicPlaying && (
-          <motion.div
-            className="absolute top-4 right-4 z-40 flex items-center gap-1.5 px-3 py-1.5 rounded-xl pointer-events-none"
-            style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(212,160,122,0.18)', backdropFilter: 'blur(12px)' }}
-            initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }}>
-            <div className="flex items-end gap-0.5 h-3">
-              {[1,2,3].map(j => (
-                <div key={j} className="w-0.5 rounded-full bg-rose-gold/65"
-                  style={{ animation: `eqBar 0.65s ${j*0.15}s ease-in-out infinite` }} />
-              ))}
-            </div>
-            <span className="text-rose-gold/55 text-[10px] font-mono">{TRACKS[currentTrack].title}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Floating music control */}
+      <MusicControl
+        audioRef={audioRef} playing={musicPlaying} trackEnded={trackEnded}
+        currentTrack={currentTrack} onToggle={toggleMusic}
+        onNext={selectTrack} />
 
       <HeartEmitter />
     </div>

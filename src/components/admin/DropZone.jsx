@@ -1,7 +1,9 @@
 import React, { useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, ImagePlus, X, Check } from 'lucide-react'
+import { Upload, ImagePlus, X, Check, Cloud, HardDrive } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
+import { uploadPhotoFile, uploadPhotoBase64 } from '../../lib/photoService.js'
+import { isFirebaseConfigured } from '../../lib/firebase.js'
 
 function generateId() {
   return `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
@@ -14,6 +16,7 @@ export default function DropZone() {
   const [previews, setPreviews] = useState([])
   const [uploading, setUploading] = useState(false)
   const [uploaded, setUploaded] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
 
   const processFiles = useCallback((files) => {
     const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
@@ -26,7 +29,7 @@ export default function DropZone() {
       const reader = new FileReader()
       reader.onload = (e) => {
         const base64 = e.target.result
-        setPreviews(prev => [...prev, { id: generateId(), src: base64, name: file.name, caption: '' }])
+        setPreviews(prev => [...prev, { id: generateId(), src: base64, file, name: file.name, caption: '' }])
         done++
         if (done === imageFiles.length) setUploading(false)
       }
@@ -64,21 +67,40 @@ export default function DropZone() {
     setPreviews(prev => prev.map(p => p.id === id ? { ...p, scratch: !p.scratch } : p))
   }, [])
 
-  const commitAll = useCallback(() => {
+  const commitAll = useCallback(async () => {
     if (!previews.length) return
-    previews.forEach(p => {
-      dispatch({
-        type: 'ADD_PHOTO',
-        payload: {
-          id: p.id,
-          src: p.src,
-          caption: p.caption || 'Bir anı...',
-          scratch: p.scratch || false,
-          date: new Date().toLocaleDateString('tr-TR'),
-        },
-      })
-    })
+    setUploading(true)
+    setUploadProgress('')
+
+    for (let i = 0; i < previews.length; i++) {
+      const p = previews[i]
+      setUploadProgress(`${i + 1} / ${previews.length} yükleniyor...`)
+      const metadata = {
+        id:      p.id,
+        src:     p.src,
+        caption: p.caption || 'Bir anı...',
+        scratch: p.scratch || false,
+        date:    new Date().toLocaleDateString('tr-TR'),
+      }
+
+      if (isFirebaseConfigured && p.file) {
+        const url = await uploadPhotoFile(p.file, metadata).catch(() => null)
+        if (url) {
+          dispatch({ type: 'ADD_PHOTO', payload: { ...metadata, src: url, url } })
+          continue
+        }
+      }
+
+      // Fallback: save base64 to Firestore (or just localStorage if no Firebase)
+      if (isFirebaseConfigured) {
+        await uploadPhotoBase64(metadata).catch(() => {})
+      }
+      dispatch({ type: 'ADD_PHOTO', payload: metadata })
+    }
+
     setPreviews([])
+    setUploading(false)
+    setUploadProgress('')
     setUploaded(true)
     if (navigator.vibrate) navigator.vibrate([30, 20, 60])
     setTimeout(() => setUploaded(false), 2500)
@@ -86,6 +108,12 @@ export default function DropZone() {
 
   return (
     <div className="space-y-4">
+      {/* Firebase status */}
+      <div className="flex items-center gap-2 text-xs font-mono px-1">
+        {isFirebaseConfigured
+          ? <><Cloud size={11} className="text-green-400/60" /><span className="text-green-400/50">Bulut senkronizasyonu aktif — tüm cihazlarda görünür</span></>
+          : <><HardDrive size={11} className="text-white/20" /><span className="text-white/20">Sadece bu cihazda (Firebase kurulmadı)</span></>}
+      </div>
       {/* Drop zone */}
       <motion.div
         className={`relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
@@ -115,7 +143,8 @@ export default function DropZone() {
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
               />
-              <p className="text-white/40 text-sm font-mono">İşleniyor...</p>
+              <p className="text-white/40 text-sm font-mono">{uploadProgress || 'İşleniyor...'}</p>
+              {isFirebaseConfigured && <p className="text-rose-gold/40 text-xs font-mono mt-1">☁ buluta yükleniyor</p>}
             </motion.div>
           ) : uploaded ? (
             <motion.div key="done" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>

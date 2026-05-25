@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
+import { subscribePhotos } from '../lib/photoService.js'
+import { isFirebaseConfigured } from '../lib/firebase.js'
 
 export const PHASES = {
   CINEMATIC_INTRO: 'CINEMATIC_INTRO',
@@ -112,6 +114,9 @@ function reducer(state, action) {
       return { ...state, photos: newPhotos }
     }
 
+    case 'SYNC_PHOTOS':
+      return { ...state, photos: action.payload }
+
     case 'DELETE_PHOTO': {
       const newPhotos = state.photos.filter(p => p.id !== action.payload)
       return { ...state, photos: newPhotos }
@@ -161,6 +166,14 @@ export function AppProvider({ children }) {
   useEffect(() => {
     saveToLS(state)
   }, [state.phase, state.photos, state.heartBurstCount, state.smileCount, state.shakeCount, state.isAdminLocked])
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) return
+    const unsub = subscribePhotos(photos => {
+      dispatch({ type: 'SYNC_PHOTOS', payload: photos })
+    })
+    return unsub
+  }, [])
 
   return (
     <AppContext.Provider value={{ state, dispatch, PHASES, MAIN_PASSWORD, ADMIN_PASSWORD }}>
