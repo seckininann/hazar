@@ -99,7 +99,7 @@ export default function HeartEmitter() {
       </AnimatePresence>
 
       {/* Pulse rings */}
-      <div className="fixed bottom-6 right-6 z-[39] pointer-events-none">
+      <div className="fixed bottom-7 right-5 z-[39] pointer-events-none">
         {holding && [1, 2, 3].map(i => (
           <motion.div
             key={i}
@@ -114,7 +114,7 @@ export default function HeartEmitter() {
 
       {/* Button — pointer events only (no Touch/Click overlap) */}
       <motion.button
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center select-none"
+        className="fixed bottom-7 right-5 z-40 w-14 h-14 rounded-full flex items-center justify-center select-none"
         style={{
           background: holding
             ? 'linear-gradient(135deg, rgba(220,80,120,0.55), rgba(170,110,210,0.5))'
@@ -136,16 +136,16 @@ export default function HeartEmitter() {
         transition={holding ? { repeat: Infinity, duration: 0.28 } : {}}
         data-cursor="heart"
       >
-        <motion.span
-          className="text-2xl leading-none"
+        <motion.div
           animate={holding
             ? { rotate: [-8, 8, -8], scale: [1, 1.25, 1] }
             : { rotate: 0, scale: 1 }
           }
           transition={holding ? { repeat: Infinity, duration: 0.38 } : {}}
         >
-          ❤️
-        </motion.span>
+          <Heart size={26} fill="rgba(232,100,140,0.95)" color="rgba(232,100,140,0.95)"
+            style={{ filter: 'drop-shadow(0 0 8px rgba(232,100,140,0.6))' }} />
+        </motion.div>
       </motion.button>
     </>
   )

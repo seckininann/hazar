@@ -284,70 +284,80 @@ function LoveSlide({ msg }) {
   )
 }
 
-// ─── Music control — centered bottom bar ─────────────────────────────────────
+// ─── Music control — Spotify-style centered mini player ──────────────────────
 function MusicControl({ playing, trackEnded, currentTrack, onToggle, onNext }) {
   return (
-    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-40"
-      style={{ transform: 'translateX(-50%)' }}>
-      <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl"
+    <motion.div
+      className="absolute left-1/2 z-40"
+      style={{ bottom: 112, transform: 'translateX(-50%)' }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 1.8 }}
+    >
+      <div className="rounded-2xl overflow-hidden"
         style={{
-          background: 'rgba(10,9,18,0.85)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          background: 'rgba(8,7,16,0.82)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          backdropFilter: 'blur(24px)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
         }}>
 
-        {/* Music icon */}
-        <Music2 size={15} style={{ color: playing ? 'rgba(212,160,122,0.85)' : 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
-
-        {/* Track dots — tap to jump to track */}
-        <div className="flex items-center gap-1.5">
+        {/* Track selector row */}
+        <div className="flex items-center justify-center gap-2 px-5 pt-3 pb-1">
           {TRACKS.map((t, i) => (
-            <button key={i}
-              className="flex flex-col items-center gap-1 group"
-              onClick={() => onNext(i)}>
-              <div className="rounded-full transition-all duration-200"
+            <button key={i} onClick={() => onNext(i)}
+              className="flex flex-col items-center gap-1.5 group"
+              style={{ minWidth: 52 }}>
+              <div className="rounded-full transition-all duration-250"
                 style={{
-                  width: i === currentTrack ? 20 : 6,
-                  height: 6,
+                  height: 3,
+                  width: '100%',
                   background: i === currentTrack
-                    ? 'rgba(212,160,122,0.9)'
-                    : 'rgba(255,255,255,0.2)',
+                    ? 'linear-gradient(90deg, #d4a07a, #c8b4e8)'
+                    : 'rgba(255,255,255,0.15)',
                 }} />
+              <span className="text-[10px] font-sans transition-colors"
+                style={{ color: i === currentTrack ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.25)' }}>
+                {t.title}
+              </span>
             </button>
           ))}
         </div>
 
-        {/* Track name */}
-        <span className="text-xs font-sans font-medium w-16 truncate"
-          style={{ color: playing ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.3)' }}>
-          {trackEnded ? 'Bitti' : TRACKS[currentTrack].title}
-        </span>
+        {/* Controls row */}
+        <div className="flex items-center gap-3 px-4 pb-3 pt-1">
+          <Music2 size={13} style={{ color: playing ? 'rgba(212,160,122,0.7)' : 'rgba(255,255,255,0.2)' }} />
 
-        {/* Play / pause */}
-        <motion.button
-          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: playing ? 'rgba(212,160,122,0.2)' : 'rgba(255,255,255,0.08)' }}
-          onClick={onToggle} whileTap={{ scale: 0.85 }}>
-          {playing
-            ? <div className="flex items-end gap-0.5 h-3.5">
-                {[1,2,3].map(j => (
-                  <div key={j} className="w-0.5 rounded-full bg-rose-gold/85"
-                    style={{ animation: `eqBar 0.65s ${j*0.15}s ease-in-out infinite` }} />
-                ))}
-              </div>
-            : <Play size={12} style={{ color: 'rgba(255,255,255,0.65)', marginLeft: 1 }} />}
-        </motion.button>
+          {/* Play / pause */}
+          <motion.button
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{
+              background: playing
+                ? 'linear-gradient(135deg,rgba(212,160,122,0.22),rgba(200,180,232,0.15))'
+                : 'rgba(255,255,255,0.07)',
+              border: playing ? '1px solid rgba(212,160,122,0.25)' : '1px solid rgba(255,255,255,0.06)',
+            }}
+            onClick={onToggle} whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.06 }}>
+            {playing
+              ? <div className="flex items-end gap-0.5 h-4">
+                  {[1,2,3].map(j => (
+                    <div key={j} className="w-0.5 rounded-full"
+                      style={{ background: 'rgba(212,160,122,0.9)', animation: `eqBar 0.65s ${j*0.15}s ease-in-out infinite` }} />
+                  ))}
+                </div>
+              : <Play size={13} style={{ color: 'rgba(255,255,255,0.7)', marginLeft: 1 }} />}
+          </motion.button>
 
-        {/* Skip */}
-        <motion.button
-          className="flex-shrink-0 text-white/30 hover:text-white/60 transition-colors"
-          onClick={() => onNext((currentTrack + 1) % TRACKS.length)}
-          whileTap={{ scale: 0.85 }}>
-          <SkipForward size={14} />
-        </motion.button>
+          {/* Skip */}
+          <motion.button
+            className="text-white/28 hover:text-white/65 transition-colors"
+            onClick={() => onNext((currentTrack + 1) % TRACKS.length)}
+            whileTap={{ scale: 0.88 }}>
+            <SkipForward size={15} />
+          </motion.button>
+        </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
