@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 const MODEL_URL = '/models'
 const STORAGE_KEY = 'hazar_face_descriptors'
+const STATIC_FILE = '/face-descriptors.json'
 
 // Singleton — models only load once across all component instances
 let _loaded = false
@@ -17,6 +18,19 @@ async function ensureModels() {
     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
   ]).then(() => { _loaded = true })
   return _loadPromise
+}
+
+// Load descriptors: static file (deployed, cross-device) > localStorage (local fallback)
+async function loadDescriptors() {
+  try {
+    const res = await fetch(STATIC_FILE, { cache: 'no-store' })
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) return data
+    }
+  } catch { /* no static file yet */ }
+  const local = localStorage.getItem(STORAGE_KEY)
+  return local ? JSON.parse(local) : null
 }
 
 export function useFaceRecognition() {
@@ -63,10 +77,10 @@ export function useFaceRecognition() {
   const recognizeFrame = useCallback(async (videoEl) => {
     if (!_loaded || !videoEl) return 'loading'
 
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (!stored) return 'no_reference'
+    const descriptors = await loadDescriptors()
+    if (!descriptors) return 'no_reference'
 
-    const storedDescriptors = JSON.parse(stored).map(d => new Float32Array(d))
+    const storedDescriptors = descriptors.map(d => new Float32Array(d))
     const labeled = [new faceapi.LabeledFaceDescriptors('eda', storedDescriptors)]
     const matcher = new faceapi.FaceMatcher(labeled, 0.52)
 

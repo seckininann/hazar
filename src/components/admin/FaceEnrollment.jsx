@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFaceRecognition } from '../../hooks/useFaceRecognition'
 
+const STORAGE_KEY = 'hazar_face_descriptors'
+
 export default function FaceEnrollment() {
   const { modelsLoaded, hasEnrolled, enrollFaces, clearEnrollment } = useFaceRecognition()
   const [status, setStatus] = useState(null) // null | 'processing' | 'success' | 'fail'
@@ -20,6 +22,18 @@ export default function FaceEnrollment() {
       setStatus('fail')
     }
     e.target.value = ''
+  }
+
+  const handleDownload = () => {
+    const data = localStorage.getItem(STORAGE_KEY)
+    if (!data) return
+    const blob = new Blob([data], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'face-descriptors.json'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const handleClear = () => {
@@ -76,13 +90,27 @@ export default function FaceEnrollment() {
         >
           {status === 'processing' ? (
             <span className="flex items-center gap-2">
-              <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}>
-                ⏳
-              </motion.span>
+              <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}>⏳</motion.span>
               İşleniyor...
             </span>
           ) : hasEnrolled ? '🔄 Fotoğrafları Güncelle' : '📷 Fotoğraf Yükle'}
         </motion.button>
+
+        {hasEnrolled && (
+          <motion.button
+            className="px-4 py-2 rounded-xl text-sm font-mono tracking-wide transition-all"
+            style={{
+              background: 'rgba(100,180,100,0.08)',
+              border: '1px solid rgba(100,180,100,0.2)',
+              color: 'rgba(140,220,140,0.8)',
+            }}
+            onClick={handleDownload}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            📥 JSON İndir
+          </motion.button>
+        )}
 
         {hasEnrolled && (
           <motion.button
@@ -100,6 +128,27 @@ export default function FaceEnrollment() {
           </motion.button>
         )}
       </div>
+
+      {/* Deploy instructions */}
+      {hasEnrolled && (
+        <motion.div
+          className="mt-5 rounded-xl p-4 text-xs font-mono leading-relaxed"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <p className="text-white/50 mb-2 font-sans text-xs">
+            📌 <strong className="text-white/70">Her cihazda çalışması için:</strong>
+          </p>
+          <ol className="text-white/35 space-y-1 list-none">
+            <li>1. <span className="text-green-400/70">📥 JSON İndir</span> butonuna bas</li>
+            <li>2. İndirilen <code className="text-rose-gold/60">face-descriptors.json</code> dosyasını</li>
+            <li className="pl-3">projenin <code className="text-rose-gold/60">public/</code> klasörüne koy</li>
+            <li>3. GitHub'a push et → Vercel otomatik deploy eder</li>
+            <li>4. Artık incognito dahil her cihazda çalışır ✓</li>
+          </ol>
+        </motion.div>
+      )}
 
       <input
         ref={inputRef}
