@@ -287,9 +287,8 @@ function LoveSlide({ msg }) {
 // ─── Music control — Spotify-style centered mini player ──────────────────────
 function MusicControl({ playing, trackEnded, currentTrack, onToggle, onNext }) {
   return (
+    <div className="absolute z-40" style={{ bottom: 112, left: '50%', transform: 'translateX(-50%)' }}>
     <motion.div
-      className="absolute left-1/2 z-40"
-      style={{ bottom: 112, transform: 'translateX(-50%)' }}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 1.8 }}
@@ -316,7 +315,7 @@ function MusicControl({ playing, trackEnded, currentTrack, onToggle, onNext }) {
                     ? 'linear-gradient(90deg, #d4a07a, #c8b4e8)'
                     : 'rgba(255,255,255,0.15)',
                 }} />
-              <span className="text-[10px] font-sans transition-colors"
+              <span className="text-[10px] font-sans transition-colors whitespace-nowrap"
                 style={{ color: i === currentTrack ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.25)' }}>
                 {t.title}
               </span>
@@ -358,6 +357,7 @@ function MusicControl({ playing, trackEnded, currentTrack, onToggle, onNext }) {
         </div>
       </div>
     </motion.div>
+    </div>
   )
 }
 
