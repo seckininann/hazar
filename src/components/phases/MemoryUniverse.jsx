@@ -204,30 +204,46 @@ function LoveSlide({msgs,idx,visible}){
       <div style={{position:'absolute',width:200,height:200,top:'8%',left:'2%',background:'radial-gradient(circle,rgba(212,160,122,.05),transparent 70%)',filter:'blur(45px)',animation:'drift 9s ease-in-out infinite',pointerEvents:'none'}}/>
       <div style={{position:'absolute',width:160,height:160,bottom:'10%',right:'3%',background:'radial-gradient(circle,rgba(180,130,250,.05),transparent 70%)',filter:'blur(40px)',animation:'drift 11s 2.5s ease-in-out infinite',pointerEvents:'none'}}/>
 
-      <div style={{
-        width:'100%',maxWidth:'min(calc(100vw - 40px),360px)',
-        borderRadius:26,padding:'36px 24px',textAlign:'center',position:'relative',
-        background:'rgba(18,16,28,.94)',border:'1px solid rgba(212,160,122,.08)',
-        boxShadow:'0 24px 70px rgba(0,0,0,.55)',
-        backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',
-        transition:'opacity .25s',
-      }}>
-
-          <div style={{display:'flex',justifyContent:'center',gap:11,marginBottom:18}}>
-            {DECOS.map((d,i)=>(
-              <span key={i} style={{fontSize:i===2?16:10,color:i===2?'rgba(244,184,204,.55)':'rgba(212,160,122,.25)',animation:`drift ${3+i*.6}s ${i*.4}s ease-in-out infinite`}}>{d}</span>
-            ))}
-          </div>
-
-          <div style={{width:40,height:40,borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',background:'linear-gradient(135deg,rgba(212,160,122,.12),rgba(200,150,245,.08))',border:'1px solid rgba(212,160,122,.12)'}}>
-            <Heart size={18} fill="rgba(212,160,122,.75)" color="rgba(212,160,122,.75)"/>
-          </div>
-
-          <p style={{fontStyle:'italic',color:'rgba(255,255,255,.84)',lineHeight:1.55,marginBottom:18,fontSize:'clamp(1.05rem,4.5vw,1.28rem)'}}>
-            &ldquo;{msg.text}&rdquo;
-          </p>
-          <div style={{width:44,height:1,margin:'0 auto 14px',background:'linear-gradient(90deg,transparent,rgba(212,160,122,.35),transparent)'}}/>
-          <p style={{color:'rgba(255,255,255,.24)',fontSize:10.5,letterSpacing:'0.2em',textTransform:'uppercase'}}>{msg.sub}</p>
+      {/* Vertical pager track */}
+      <div style={{position:'absolute',inset:0,overflow:'hidden',zIndex:1}}>
+        <div style={{
+          height:'100%',
+          display:'grid',
+          gridAutoRows:'100%',
+          transform:`translateY(-${(idx%msgs.length)*100}%)`,
+          transition:'transform 0.38s cubic-bezier(0.22,1,0.36,1)',
+          willChange:'transform',
+        }}>
+          {msgs.map((m,i)=>(
+            <div key={m.id||i} style={{
+              width:'100%',height:'100%',
+              display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+              padding:'0 20px',paddingBottom:90,
+            }}>
+              <div style={{
+                width:'100%',maxWidth:'min(calc(100vw - 40px),360px)',
+                borderRadius:26,padding:'36px 24px',textAlign:'center',position:'relative',
+                background:'rgba(18,16,28,.94)',border:'1px solid rgba(212,160,122,.08)',
+                boxShadow:'0 24px 70px rgba(0,0,0,.55)',
+                backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'
+              }}>
+                <div style={{display:'flex',justifyContent:'center',gap:11,marginBottom:18}}>
+                  {DECOS.map((d,j)=>(
+                    <span key={j} style={{fontSize:j===2?16:10,color:j===2?'rgba(244,184,204,.55)':'rgba(212,160,122,.25)',animation:`drift ${3+j*.6}s ${j*.4}s ease-in-out infinite`}}>{d}</span>
+                  ))}
+                </div>
+                <div style={{width:40,height:40,borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',background:'linear-gradient(135deg,rgba(212,160,122,.12),rgba(200,150,245,.08))',border:'1px solid rgba(212,160,122,.12)'}}>
+                  <Heart size={18} fill="rgba(212,160,122,.75)" color="rgba(212,160,122,.75)"/>
+                </div>
+                <p style={{fontStyle:'italic',color:'rgba(255,255,255,.84)',lineHeight:1.55,marginBottom:18,fontSize:'clamp(1.05rem,4.5vw,1.28rem)'}}>
+                  &ldquo;{m.text}&rdquo;
+                </p>
+                <div style={{width:44,height:1,margin:'0 auto 14px',background:'linear-gradient(90deg,transparent,rgba(212,160,122,.35),transparent)'}}/>
+                <p style={{color:'rgba(255,255,255,.24)',fontSize:10.5,letterSpacing:'0.2em',textTransform:'uppercase'}}>{m.sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {msgs.length>1&&(
