@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Heart, Bookmark, Play, SkipForward, Music2, ChevronLeft, Sparkles, Star } from 'lucide-react'
 import { useAppState } from '../../store/appState.jsx'
 import HeartEmitter from '../memory/HeartEmitter.jsx'
+import { fetchLoveMessages, fetchCoverTitle } from '../../lib/contentService.js'
 
 const LS_TITLE_KEY    = 'hazar_cover_title'
 const LS_MESSAGES_KEY = 'hazar_love_messages'
@@ -36,6 +37,15 @@ html,body{overscroll-behavior:none}
 @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
 @keyframes drift{0%,100%{transform:translate(0,0)}33%{transform:translate(4px,-8px)}66%{transform:translate(-5px,4px)}}
 `
+
+// Swipe thresholds — favor vertical a bit to make down/up easier
+const SWIPE = {
+  LOCK_PX: 6,
+  VERT_BIAS: 0.72,
+  THR_H: 36,
+  THR_V: 24,
+  MUSIC_H: 90,
+}
 
 const STARS = Array.from({length:14},(_, i)=>({
   id:i, size:1+(i%3)*.7, top:(i*17+5)%100, left:(i*23+7)%100,
@@ -185,7 +195,7 @@ function LoveSlide({msgs,idx,visible}){
       position:'absolute',inset:0,display:'flex',flexDirection:'column',
       alignItems:'center',justifyContent:'center',padding:'0 20px',paddingBottom:90,
       background:'linear-gradient(155deg,#0f0c1e,#160d22 45%,#0c0b14)',
-      zIndex:20,pointerEvents:visible?'auto':'none',
+      zIndex:58,pointerEvents:visible?'auto':'none',
       transform:visible?'translateY(0)':'translateY(100%)',
       transition:'transform 0.38s cubic-bezier(0.22,1,0.36,1)',
       willChange:'transform',
@@ -228,8 +238,8 @@ function LoveSlide({msgs,idx,visible}){
         </div>
       )}
 
-      {/* swipe left/right hint */}
-      <p style={{marginTop:12,color:'rgba(255,255,255,.18)',fontSize:10.5,letterSpacing:'.12em',pointerEvents:'none'}}>← mesajlar →</p>
+      {/* swipe up/down hint */}
+      <p style={{marginTop:12,color:'rgba(255,255,255,.18)',fontSize:10.5,letterSpacing:'.12em',pointerEvents:'none'}}>↑ önceki · ↓ sonraki</p>
     </div>
   )
 }
@@ -238,7 +248,7 @@ function LoveSlide({msgs,idx,visible}){
 function MusicBar({playing,track,onToggle,onNext}){
   return(
     <div style={{
-      position:'fixed',bottom:0,left:0,right:0,zIndex:100,
+      position:'fixed',bottom:0,left:0,right:0,zIndex:50,
       paddingBottom:'env(safe-area-inset-bottom,0px)',
       background:'rgba(6,5,14,.97)',borderTop:'1px solid rgba(255,255,255,.05)',
       backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',
@@ -307,7 +317,8 @@ function NavDots({total,col,row}){
 export default function MemoryUniverse(){
   const {state,dispatch}=useAppState()
   const photos=state.photos||[]
-  const MSGS=useMemo(loadMsgs,[])
+  const [MSGS,setMSGS]=useState(DEFAULT_MSGS)
+  const [coverTitle,setCoverTitle]=useState('Özelimiz')
 
   const colRef   = useRef(0)
   const rowRef   = useRef(0)
@@ -328,7 +339,6 @@ export default function MemoryUniverse(){
   const audioRef   = useRef(null)
   const touchedRef = useRef(false)
 
-  const coverTitle = localStorage.getItem(LS_TITLE_KEY)||'Özelimiz'
   const totalCols  = 1+photos.length
   totalR.current   = totalCols
   const msgsLen    = MSGS.length
@@ -339,6 +349,26 @@ export default function MemoryUniverse(){
   useEffect(()=>{
     const t=setTimeout(()=>setHint(false),5000)
     return()=>clearTimeout(t)
+  },[])
+
+  // Fetch dynamic content (messages + cover title) with LS fallback if API fails
+  useEffect(()=>{
+    let alive=true
+    ;(async()=>{
+      try{
+        const [m,t]=await Promise.allSettled([fetchLoveMessages(),fetchCoverTitle()])
+        if(!alive) return
+        if(m.status==='fulfilled' && Array.isArray(m.value) && m.value.length>0) setMSGS(m.value)
+        else setMSGS(loadMsgs())
+        if(t.status==='fulfilled' && typeof t.value==='string' && t.value) setCoverTitle(t.value)
+        else setCoverTitle(localStorage.getItem(LS_TITLE_KEY)||'Özelimiz')
+      }catch{
+        if(!alive) return
+        setMSGS(loadMsgs())
+        setCoverTitle(localStorage.getItem(LS_TITLE_KEY)||'Özelimiz')
+      }
+    })()
+    return()=>{alive=false}
   },[])
 
   // Music
@@ -385,30 +415,40 @@ export default function MemoryUniverse(){
   const navigate=useCallback((dc,dr)=>{
     if(busyRef.current)return
     busyRef.current=true
-    setTimeout(()=>{busyRef.current=false},380)
+    setTimeout(()=>{busyRef.current=false},360)
     const curCol=colRef.current
     const curRow=rowRef.current
+    // Vertical: messages inside LoveSlide, and open/close behavior
     if(dr!==0){
-      const nr=Math.max(0,Math.min(1,curRow+dr))
-      if(nr===curRow)return
-      rowRef.current=nr
-      if(nr===1) setLoveIdx(Math.max(0,curCol-1))
-      setRow(nr)
-      return
-    }
-    if(dc!==0){
-      // When love slide open → cycle messages, don't move track
       if(curRow===1){
-        setLoveIdx(i=>((i+(dc>0?1:-1))+MSGS.length)%MSGS.length)
+        if(dr>0){ // down → next message
+          setLoveIdx(i=> Math.min(msgsLen-1, i+1))
+        }else{    // up → prev message or close
+          setLoveIdx(i=>{
+            if(i>0) return i-1
+            rowRef.current=0; setRow(0)
+            return 0
+          })
+        }
         return
       }
+      // row=0 and swipe down → open love at this column
+      if(dr>0){
+        rowRef.current=1; setRow(1)
+        setLoveIdx(Math.max(0,curCol-1))
+      }
+      return
+    }
+    // Horizontal: only when love is closed
+    if(dc!==0){
+      if(curRow===1) return
       setHint(false)
       const nc=Math.max(0,Math.min(totalR.current-1,curCol+dc))
       if(nc===curCol)return
       colRef.current=nc
       setCol(nc)
     }
-  },[MSGS.length])
+  },[msgsLen])
 
   const logout=useCallback(()=>{
     const audio=audioRef.current
@@ -418,8 +458,8 @@ export default function MemoryUniverse(){
 
   // ── LIVE DRAG — direct DOM, zero React re-renders during swipe ──
   const onTouchStart=useCallback((e)=>{
-    // Ignore touches on fixed elements (music bar bottom 85px)
-    if(e.touches[0].clientY > window.innerHeight-88) return
+    // Ignore touches on fixed elements (music bar area)
+    if(e.touches[0].clientY > window.innerHeight-SWIPE.MUSIC_H) return
     tsRef.current={x:e.touches[0].clientX, y:e.touches[0].clientY, locked:null}
   },[])
 
@@ -430,10 +470,10 @@ export default function MemoryUniverse(){
     const dy=e.touches[0].clientY-ts.y
     const ax=Math.abs(dx), ay=Math.abs(dy)
 
-    // Lock direction after 8px movement
+    // Lock after a few px with vertical bias (easier down/up)
     if(!ts.locked){
-      if(ax<8&&ay<8)return
-      ts.locked=ax>ay?'h':'v'
+      if(ax<SWIPE.LOCK_PX && ay<SWIPE.LOCK_PX) return
+      ts.locked = (ay > ax * SWIPE.VERT_BIAS) ? 'v' : 'h'
     }
 
     if(ts.locked==='h'){
@@ -458,19 +498,16 @@ export default function MemoryUniverse(){
 
     if(!locked&&ax<10&&ay<10)return // tap, no swipe
 
-    if(locked==='h'||ax>ay){
+    const isVertical = locked==='v' || ay > ax*0.85
+    if(!isVertical){
       // Snap back to correct column
       if(trackRef.current){
         trackRef.current.style.transition='transform 0.34s cubic-bezier(0.22,1,0.36,1)'
         trackRef.current.style.transform=`translateX(${-colRef.current*window.innerWidth}px)`
       }
-      if(ax>38){
-        dx<0?navigate(1,0):navigate(-1,0)
-      }
-    } else if(locked==='v'||ay>ax){
-      if(ay>38){
-        dy<0?navigate(0,1):navigate(0,-1)
-      }
+      if(ax>SWIPE.THR_H){ dx<0?navigate(1,0):navigate(-1,0) }
+    } else {
+      if(ay>SWIPE.THR_V){ dy<0?navigate(0,1):navigate(0,-1) }
     }
   },[navigate])
 

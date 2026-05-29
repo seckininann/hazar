@@ -99,7 +99,7 @@ export default function HeartEmitter() {
       </AnimatePresence>
 
       {/* Pulse rings */}
-      <div className="fixed bottom-7 right-5 z-[39] pointer-events-none">
+      <div className="fixed bottom-7 right-5 z-[61] pointer-events-none">
         {holding && [1, 2, 3].map(i => (
           <motion.div
             key={i}
@@ -114,8 +114,9 @@ export default function HeartEmitter() {
 
       {/* Button — pointer events only (no Touch/Click overlap) */}
       <motion.button
-        className="fixed bottom-7 right-5 z-40 w-14 h-14 rounded-full flex items-center justify-center select-none"
+        className="fixed right-5 z-[62] w-14 h-14 rounded-full flex items-center justify-center select-none"
         style={{
+          bottom: 'calc(90px + env(safe-area-inset-bottom,0px))',
           background: holding
             ? 'linear-gradient(135deg, rgba(220,80,120,0.55), rgba(170,110,210,0.5))'
             : 'linear-gradient(135deg, rgba(232,140,170,0.22), rgba(200,180,232,0.18))',

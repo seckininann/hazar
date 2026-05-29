@@ -18,6 +18,39 @@ export default function DropZone() {
   const [uploaded, setUploaded] = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
 
+  // Client-side compression helper (maxWidth 1080, quality 0.8)
+  const compressImage = (file) => new Promise((resolve) => {
+    try{
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        const maxW = 1080
+        const scale = Math.min(1, maxW / img.width)
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w; canvas.height = h
+        const ctx = canvas.getContext('2d', { alpha: false })
+        ctx.drawImage(img, 0, 0, w, h)
+        const mime = file.type.includes('png') ? 'image/png' : 'image/jpeg'
+        const q = mime==='image/png' ? 0.92 : 0.8
+        canvas.toBlob((blob)=>{
+          if(blob){
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.readAsDataURL(blob)
+          }else{
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.readAsDataURL(file)
+          }
+        }, mime, q)
+      }
+      img.onerror = () => resolve(null)
+      img.src = url
+    }catch{ resolve(null) }
+  })
+
   const processFiles = useCallback((files) => {
     const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
     if (!imageFiles.length) return
@@ -25,15 +58,17 @@ export default function DropZone() {
     setUploading(true)
     let done = 0
 
-    imageFiles.forEach(file => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const base64 = e.target.result
+    imageFiles.forEach(async (file) => {
+      const base64 = await compressImage(file)
+      if (base64) {
         setPreviews(prev => [...prev, { id: generateId(), src: base64, file, name: file.name, caption: '' }])
-        done++
-        if (done === imageFiles.length) setUploading(false)
+      } else {
+        const reader = new FileReader()
+        reader.onload = (e) => setPreviews(prev => [...prev, { id: generateId(), src: e.target.result, file, name: file.name, caption: '' }])
+        reader.readAsDataURL(file)
       }
-      reader.readAsDataURL(file)
+      done++
+      if (done === imageFiles.length) setUploading(false)
     })
   }, [])
 
