@@ -13,7 +13,7 @@ const MAIN_PASSWORD = 'hazar'
 const ADMIN_PASSWORD = 'kral2024'
 const MAX_ADMIN_ATTEMPTS = 3
 const LS_KEY_PHASE = 'hazar_app_phase'
-const LS_KEY_PHOTOS = 'hazar_app_photos'
+const LS_KEY_PHOTOS = 'hazar_app_photos' // used only when Firebase is NOT configured
 const LS_KEY_REACTIONS = 'hazar_app_reactions'
 const LS_KEY_LOCKED = 'hazar_app_locked'
 
@@ -34,7 +34,7 @@ const initialState = {
 
 function loadFromLS() {
   try {
-    const savedPhotos = JSON.parse(localStorage.getItem(LS_KEY_PHOTOS) || '[]')
+    const savedPhotos = isFirebaseConfigured ? [] : JSON.parse(localStorage.getItem(LS_KEY_PHOTOS) || '[]')
     const savedReactions = JSON.parse(localStorage.getItem(LS_KEY_REACTIONS) || '{}')
     const isLocked = localStorage.getItem(LS_KEY_LOCKED) === 'true'
     return {
@@ -53,7 +53,9 @@ function loadFromLS() {
 
 function saveToLS(state) {
   try {
-    localStorage.setItem(LS_KEY_PHOTOS, JSON.stringify(state.photos))
+    if(!isFirebaseConfigured){
+      localStorage.setItem(LS_KEY_PHOTOS, JSON.stringify(state.photos))
+    }
     localStorage.setItem(LS_KEY_REACTIONS, JSON.stringify({
       heartBurstCount: state.heartBurstCount,
       smileCount: state.smileCount,

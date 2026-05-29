@@ -418,35 +418,35 @@ export default function MemoryUniverse(){
     setTimeout(()=>{busyRef.current=false},360)
     const curCol=colRef.current
     const curRow=rowRef.current
-    // Vertical: messages inside LoveSlide, and open/close behavior
+    // Vertical first — global pager behavior
     if(dr!==0){
       if(curRow===1){
         if(dr>0){ // down → next message
           setLoveIdx(i=> Math.min(msgsLen-1, i+1))
-        }else{    // up → prev message or close
+        }else{    // up → prev message or close when at first
           setLoveIdx(i=>{
             if(i>0) return i-1
             rowRef.current=0; setRow(0)
             return 0
           })
         }
-        return
-      }
-      // row=0 and swipe down → open love at this column
-      if(dr>0){
+      } else {
+        // row=0: open love and adjust global index based on direction
         rowRef.current=1; setRow(1)
-        setLoveIdx(Math.max(0,curCol-1))
+        if(dr>0) setLoveIdx(i=> Math.min(msgsLen-1, i+1))
+        else     setLoveIdx(i=> Math.max(0, i-1))
       }
-      return
     }
-    // Horizontal: only when love is closed
+
+    // Horizontal — when love is open, close it and change column; when closed, just change column
     if(dc!==0){
-      if(curRow===1) return
+      if(curRow===1){
+        rowRef.current=0; setRow(0)
+      }
+      const baseCol = curRow===1 ? colRef.current : curCol
+      const nc=Math.max(0,Math.min(totalR.current-1,baseCol+dc))
+      if(nc!==colRef.current){ colRef.current=nc; setCol(nc) }
       setHint(false)
-      const nc=Math.max(0,Math.min(totalR.current-1,curCol+dc))
-      if(nc===curCol)return
-      colRef.current=nc
-      setCol(nc)
     }
   },[msgsLen])
 
@@ -461,11 +461,6 @@ export default function MemoryUniverse(){
     // Ignore touches on fixed elements (music bar area)
     if(e.touches[0].clientY > window.innerHeight-SWIPE.MUSIC_H) return
     tsRef.current={x:e.touches[0].clientX, y:e.touches[0].clientY, locked:null}
-    // When LoveSlide is visible, enforce vertical-only paging immediately
-    if(rowRef.current===1){
-      tsRef.current.locked='v'
-      tsRef.current.vonly=true
-    }
   },[])
 
   const onTouchMove=useCallback((e)=>{
@@ -474,12 +469,6 @@ export default function MemoryUniverse(){
     const dx=e.touches[0].clientX-ts.x
     const dy=e.touches[0].clientY-ts.y
     const ax=Math.abs(dx), ay=Math.abs(dy)
-
-    // If LoveSlide is open, fully ignore horizontal movement and prevent defaults
-    if(rowRef.current===1){
-      if(e.cancelable) e.preventDefault()
-      return
-    }
 
     // Lock after a few px with vertical bias (easier down/up)
     if(!ts.locked){
@@ -493,6 +482,9 @@ export default function MemoryUniverse(){
         const base=-colRef.current*window.innerWidth
         trackRef.current.style.transition='none'
         trackRef.current.style.transform=`translateX(${base+dx}px)`
+      } else {
+        // Love open: do not drag the track; prevent scroll bounce
+        if(e.cancelable) e.preventDefault()
       }
     }
     // vertical drag handled on touchEnd
@@ -509,16 +501,17 @@ export default function MemoryUniverse(){
 
     if(!locked&&ax<10&&ay<10)return // tap, no swipe
 
-    // If LoveSlide is open, accept only vertical and ignore X entirely
+    // Love open: allow horizontal to close Love and move column; else allow vertical messages
     if(rowRef.current===1){
-      if(ay>SWIPE.THR_V){ dy<0?navigate(0,1):navigate(0,-1) }
+      if(ax>SWIPE.THR_H && ax>=ay){ dx<0?navigate(1,0):navigate(-1,0); return }
+      if(ay>SWIPE.THR_V){ dy<0?navigate(0,1):navigate(0,-1); return }
       return
     }
 
     const isVertical = locked==='v' || ay > ax*0.85
     if(!isVertical){
       // Snap back to correct column (only when love is closed)
-      if(rowRef.current===0 && trackRef.current){
+      if(trackRef.current){
         trackRef.current.style.transition='transform 0.34s cubic-bezier(0.22,1,0.36,1)'
         trackRef.current.style.transform=`translateX(${-colRef.current*window.innerWidth}px)`
       }
