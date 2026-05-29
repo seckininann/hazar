@@ -461,6 +461,11 @@ export default function MemoryUniverse(){
     // Ignore touches on fixed elements (music bar area)
     if(e.touches[0].clientY > window.innerHeight-SWIPE.MUSIC_H) return
     tsRef.current={x:e.touches[0].clientX, y:e.touches[0].clientY, locked:null}
+    // When LoveSlide is visible, enforce vertical-only paging immediately
+    if(rowRef.current===1){
+      tsRef.current.locked='v'
+      tsRef.current.vonly=true
+    }
   },[])
 
   const onTouchMove=useCallback((e)=>{
@@ -469,6 +474,12 @@ export default function MemoryUniverse(){
     const dx=e.touches[0].clientX-ts.x
     const dy=e.touches[0].clientY-ts.y
     const ax=Math.abs(dx), ay=Math.abs(dy)
+
+    // If LoveSlide is open, fully ignore horizontal movement and prevent defaults
+    if(rowRef.current===1){
+      if(e.cancelable) e.preventDefault()
+      return
+    }
 
     // Lock after a few px with vertical bias (easier down/up)
     if(!ts.locked){
@@ -498,10 +509,16 @@ export default function MemoryUniverse(){
 
     if(!locked&&ax<10&&ay<10)return // tap, no swipe
 
+    // If LoveSlide is open, accept only vertical and ignore X entirely
+    if(rowRef.current===1){
+      if(ay>SWIPE.THR_V){ dy<0?navigate(0,1):navigate(0,-1) }
+      return
+    }
+
     const isVertical = locked==='v' || ay > ax*0.85
     if(!isVertical){
-      // Snap back to correct column
-      if(trackRef.current){
+      // Snap back to correct column (only when love is closed)
+      if(rowRef.current===0 && trackRef.current){
         trackRef.current.style.transition='transform 0.34s cubic-bezier(0.22,1,0.36,1)'
         trackRef.current.style.transform=`translateX(${-colRef.current*window.innerWidth}px)`
       }

@@ -119,18 +119,24 @@ export default function DropZone() {
       }
 
       if (isFirebaseConfigured && p.file) {
-        const url = await uploadPhotoFile(p.file, metadata).catch(() => null)
-        if (url) {
+        try{
+          const url = await uploadPhotoFile(p.file, metadata)
+          // Optimistic add; subscribePhotos will also sync real-time
           dispatch({ type: 'ADD_PHOTO', payload: { ...metadata, src: url, url } })
           continue
+        }catch{
+          // fallback to base64 doc if storage fails
+          try{ await uploadPhotoBase64(metadata) }catch{}
+          dispatch({ type: 'ADD_PHOTO', payload: metadata })
+          continue
         }
+      } else if (isFirebaseConfigured) {
+        try{ await uploadPhotoBase64(metadata) }catch{}
+        dispatch({ type: 'ADD_PHOTO', payload: metadata })
+      } else {
+        // no backend configured — show locally only
+        dispatch({ type: 'ADD_PHOTO', payload: metadata })
       }
-
-      // Fallback: save base64 to Firestore (or just localStorage if no Firebase)
-      if (isFirebaseConfigured) {
-        await uploadPhotoBase64(metadata).catch(() => {})
-      }
-      dispatch({ type: 'ADD_PHOTO', payload: metadata })
     }
 
     setPreviews([])

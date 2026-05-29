@@ -2,7 +2,8 @@ import {
   collection, doc, setDoc, deleteDoc, updateDoc,
   query, orderBy, onSnapshot,
 } from 'firebase/firestore'
-import { db, isFirebaseConfigured } from './firebase.js'
+import { ref as sRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { db, storage, isFirebaseConfigured } from './firebase.js'
 
 const COL = 'photos'
 
@@ -10,33 +11,24 @@ const CLD_NAME   = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
 const CLD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
 export const isCloudinaryConfigured = Boolean(CLD_NAME && CLD_PRESET)
 
-/** Upload a File to Cloudinary, save metadata to Firestore. Returns the download URL. */
+/** Upload a File to Firebase Storage, then save metadata to Firestore. Returns the download URL. */
 export async function uploadPhotoFile(file, metadata) {
-  let url = null
+  if (!isFirebaseConfigured || !storage) throw new Error('Firebase not configured')
+  const path = `photos/${metadata.id}_${file.name}`
+  const ref  = sRef(storage, path)
+  await uploadBytes(ref, file)
+  const url = await getDownloadURL(ref)
 
-  if (isCloudinaryConfigured) {
-    const form = new FormData()
-    form.append('file', file)
-    form.append('upload_preset', CLD_PRESET)
-    form.append('public_id', metadata.id)
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLD_NAME}/image/upload`, {
-      method: 'POST', body: form,
-    })
-    const json = await res.json()
-    url = json.secure_url
-  }
-
-  if (isFirebaseConfigured) {
-    await setDoc(doc(db, COL, metadata.id), {
-      id:        metadata.id,
-      url:       url || metadata.src,
-      src:       url || metadata.src,
-      caption:   metadata.caption || '',
-      date:      metadata.date || '',
-      scratch:   metadata.scratch || false,
-      createdAt: Date.now(),
-    })
-  }
+  await setDoc(doc(db, COL, metadata.id), {
+    id:        metadata.id,
+    url,
+    src:       url,
+    caption:   metadata.caption || '',
+    date:      metadata.date || '',
+    scratch:   metadata.scratch || false,
+    createdAt: Date.now(),
+    storagePath: path,
+  })
 
   return url
 }
@@ -59,13 +51,6 @@ export async function uploadPhotoBase64(metadata) {
 export async function deletePhoto(photoId) {
   if (isFirebaseConfigured) {
     await deleteDoc(doc(db, COL, photoId))
-  }
-  if (isCloudinaryConfigured) {
-    await fetch(`https://api.cloudinary.com/v1_1/${CLD_NAME}/image/destroy`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ public_id: photoId, upload_preset: CLD_PRESET }),
-    }).catch(() => {})
   }
 }
 
