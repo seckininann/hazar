@@ -171,10 +171,17 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!isFirebaseConfigured) return
-    const unsub = subscribePhotos(photos => {
-      dispatch({ type: 'SYNC_PHOTOS', payload: photos })
-    })
-    return unsub
+    let unsubscribe
+    // Small delay to ensure Firebase fully initializes before subscribing
+    const timeout = setTimeout(() => {
+      unsubscribe = subscribePhotos(photos => {
+        dispatch({ type: 'SYNC_PHOTOS', payload: photos })
+      })
+    }, 100)
+    return () => {
+      clearTimeout(timeout)
+      if (unsubscribe) unsubscribe()
+    }
   }, [])
 
   return (
