@@ -15,12 +15,28 @@ export const isCloudinaryConfigured = Boolean(CLD_NAME && CLD_PRESET)
 export async function uploadPhotoFile(file, metadata) {
   // Prefer Cloudinary to avoid dependency on Firebase Storage bucket availability
   if (isCloudinaryConfigured) {
-    const form = new FormData()
-    form.append('file', file)
-    form.append('upload_preset', CLD_PRESET)
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLD_NAME}/upload`, { method: 'POST', body: form })
-    if (!res.ok) throw new Error('Cloudinary upload failed')
-    const data = await res.json()
+    // Use XHR for wider iOS/Safari compatibility
+    const uploadToCloudinary = () => new Promise((resolve, reject) => {
+      try{
+        const form = new FormData()
+        form.append('file', file)
+        form.append('upload_preset', CLD_PRESET)
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLD_NAME}/upload`)
+        xhr.timeout = 25000
+        xhr.onload = () => {
+          let data=null
+          try{ data = JSON.parse(xhr.responseText) }catch{ /* ignore */ }
+          if (xhr.status >= 200 && xhr.status < 300 && data) resolve(data)
+          else reject(new Error(data?.error?.message || `Cloudinary upload failed (${xhr.status})`))
+        }
+        xhr.onerror = () => reject(new Error('Cloudinary network error'))
+        xhr.ontimeout = () => reject(new Error('Cloudinary timeout'))
+        xhr.send(form)
+      }catch(err){ reject(err) }
+    })
+
+    const data = await uploadToCloudinary()
     const url = data.secure_url || data.url
 
     await setDoc(doc(db, COL, metadata.id), {
