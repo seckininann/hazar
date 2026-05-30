@@ -9,6 +9,18 @@ function generateId() {
   return `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
+// Prevent indefinite spinners if cloud upload hangs (e.g., Storage not fully active)
+function withTimeout(promise, ms = 25000) {
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timeout')), ms)
+  })
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)),
+    timeout,
+  ])
+}
+
 export default function DropZone() {
   const { dispatch } = useAppState()
   const inputRef = useRef(null)
@@ -120,7 +132,8 @@ export default function DropZone() {
 
       if (isFirebaseConfigured && p.file) {
         try{
-          const url = await uploadPhotoFile(p.file, metadata)
+          // Guard with timeout; if it takes too long, fallback to base64 doc
+          const url = await withTimeout(uploadPhotoFile(p.file, metadata), 25000)
           // Optimistic add; subscribePhotos will also sync real-time
           dispatch({ type: 'ADD_PHOTO', payload: { ...metadata, src: url, url } })
           continue
