@@ -12,6 +12,32 @@ import CharSplitText from '../ui/CharSplitText.jsx'
 import { saveLoveMessages, saveCoverTitle } from '../../lib/contentService.js'
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
+function DebugPanel() {
+  const vars = {
+    FB_API_KEY: import.meta.env.VITE_FB_API_KEY ? 'Var' : 'YOK',
+    FB_AUTH_DOMAIN: import.meta.env.VITE_FB_AUTH_DOMAIN ? 'Var' : 'YOK',
+    FB_PROJECT_ID: import.meta.env.VITE_FB_PROJECT_ID ? 'Var' : 'YOK',
+    FB_STORAGE_BUCKET: import.meta.env.VITE_FB_STORAGE_BUCKET ? 'Var' : 'YOK',
+    FB_SENDER_ID: import.meta.env.VITE_FB_MESSAGING_SENDER_ID ? 'Var' : 'YOK',
+    FB_APP_ID: import.meta.env.VITE_FB_APP_ID ? 'Var' : 'YOK',
+    CLD_NAME: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME ? 'Var' : 'YOK',
+    CLD_PRESET: import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ? 'Var' : 'YOK',
+  }
+  
+  return (
+    <div style={{ padding: 15, background: 'rgba(255,0,0,0.1)', border: '1px solid red', borderRadius: 10, marginBottom: 20, fontFamily: 'monospace', fontSize: 11, color: '#fff' }}>
+      <p style={{ fontWeight: 'bold', marginBottom: 5 }}>SİSTEM BAĞLANTI DURUMU:</p>
+      <p>Firebase Aktif mi (Kod bazında)?: {isFirebaseConfigured ? <span style={{color:'lime'}}>EVET</span> : <span style={{color:'red'}}>HAYIR</span>}</p>
+      <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
+        {Object.entries(vars).map(([k,v]) => (
+          <div key={k}>{k}: <span style={{color: v === 'Var' ? 'lime' : 'red'}}>{v}</span></div>
+        ))}
+      </div>
+      <p style={{ marginTop: 10, fontSize: 10, color: '#aaa' }}>*Eğer kırmızı 'YOK' yazan varsa, Vercel'deki o isimli ayar siteye ulaşamıyor demektir.</p>
+    </div>
+  )
+}
+
 function SectionHeader({ icon: Icon, title, accent = '#d4a07a', count }) {
   return (
     <div className="flex items-center justify-between mb-6">
@@ -583,6 +609,7 @@ export default function CreativeStudio() {
       {/* Content area */}
       <div className="phase-scroll" style={{ height: 'calc(100% - 120px)' }}>
         <div className="px-5 md:px-8 py-6 pb-20 max-w-3xl">
+          <DebugPanel />
           <AnimatePresence mode="wait">
 
             {activeTab === 'upload' && (
