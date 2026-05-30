@@ -626,7 +626,6 @@ export default function MemoryUniverse(){
         )}
       </AnimatePresence>
 
-      <NavDots total={totalCols} col={col} row={row}/>
       <MusicBar playing={music} track={track} onToggle={toggleMusic} onNext={pickTrack}/>
       <HeartEmitter/>
     </div>
