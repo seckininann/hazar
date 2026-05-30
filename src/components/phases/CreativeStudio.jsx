@@ -9,6 +9,8 @@ import TelemetryCharts from '../admin/TelemetryCharts.jsx'
 import FaceEnrollment from '../admin/FaceEnrollment.jsx'
 import CharSplitText from '../ui/CharSplitText.jsx'
 
+import { saveLoveMessages, saveCoverTitle } from '../../lib/contentService.js'
+
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 function SectionHeader({ icon: Icon, title, accent = '#d4a07a', count }) {
   return (
@@ -278,8 +280,9 @@ function AdminSettings() {
     setTimeout(() => setToast(null), 2800)
   }
 
-  const saveTitle = () => {
+  const saveTitle = async () => {
     localStorage.setItem('hazar_cover_title', title.trim() || 'Özelimiz')
+    if (isFirebaseConfigured) await saveCoverTitle(title.trim() || 'Özelimiz')
     flash('Başlık kaydedildi')
   }
   const savePw = () => {
@@ -293,8 +296,9 @@ function AdminSettings() {
     localStorage.removeItem('hazar_custom_password')
     flash('Varsayılan şifreye döndü')
   }
-  const saveMessages = () => {
+  const saveMessages = async () => {
     localStorage.setItem('hazar_love_messages', JSON.stringify(messages))
+    if (isFirebaseConfigured) await saveLoveMessages(messages)
     flash('Mesajlar kaydedildi')
   }
   const updateMsg = (id, field, val) => setMessages(ms => ms.map(m => m.id === id ? { ...m, [field]: val } : m))
