@@ -1,5 +1,6 @@
 import * as faceapi from 'face-api.js'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { saveFaceDescriptors, clearFaceDescriptors as dbClearFaceDescriptors } from '../lib/contentService'
 
 const MODEL_URL = '/models'
 const STORAGE_KEY = 'hazar_face_descriptors'
@@ -62,6 +63,7 @@ export function useFaceRecognition() {
     }
     if (descriptors.length > 0) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(descriptors))
+      saveFaceDescriptors(descriptors).catch(() => {})
       setHasEnrolled(true)
     }
     return descriptors.length
@@ -69,6 +71,7 @@ export function useFaceRecognition() {
 
   const clearEnrollment = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY)
+    dbClearFaceDescriptors().catch(() => {})
     setHasEnrolled(false)
   }, [])
 

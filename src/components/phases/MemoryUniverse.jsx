@@ -8,9 +8,9 @@ import { fetchLoveMessages, fetchCoverTitle } from '../../lib/contentService.js'
 const LS_TITLE_KEY    = 'hazar_cover_title'
 const LS_MESSAGES_KEY = 'hazar_love_messages'
 const TRACKS = [
-  { src: '/audio/music1.mp3', title: 'Seninle' },
-  { src: '/audio/music2.mp3', title: 'Her Zaman' },
-  { src: '/audio/music3.mp3', title: 'Sonsuzluk' },
+  { src: '/audio/hastalikta.mp3', title: 'Hastalıkta Sağlıkta' },
+  { src: '/audio/hele-bi-gel.mp3', title: 'Hele Bi Gel' },
+  { src: '/audio/tencere-kapak.mp3', title: 'Tencere Kapak' },
 ]
 const DEFAULT_MSGS = [
   { id: 'm1', text: 'Seninle her an güzel', sub: 'her zaman, her yerde' },

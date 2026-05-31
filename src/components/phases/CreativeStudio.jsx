@@ -9,7 +9,7 @@ import TelemetryCharts from '../admin/TelemetryCharts.jsx'
 import FaceEnrollment from '../admin/FaceEnrollment.jsx'
 import CharSplitText from '../ui/CharSplitText.jsx'
 
-import { saveLoveMessages, saveCoverTitle } from '../../lib/contentService.js'
+import { saveLoveMessages, saveCoverTitle, saveCustomPassword } from '../../lib/contentService.js'
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 function DebugPanel() {
@@ -311,14 +311,15 @@ function AdminSettings() {
     if (isFirebaseConfigured) await saveCoverTitle(title.trim() || 'Özelimiz')
     flash('Başlık kaydedildi')
   }
-  const savePw = () => {
+  const savePw = async () => {
     if (!pw || pw !== pw2) { flash('Şifreler eşleşmiyor', true); return }
     if (pw.length < 3) { flash('En az 3 karakter olmalı', true); return }
-    localStorage.setItem('hazar_custom_password', pw)
+    await saveCustomPassword(pw)
     setPw(''); setPw2('')
     flash('Şifre güncellendi')
   }
-  const resetPw = () => {
+  const resetPw = async () => {
+    await saveCustomPassword('hazar')
     localStorage.removeItem('hazar_custom_password')
     flash('Varsayılan şifreye döndü')
   }

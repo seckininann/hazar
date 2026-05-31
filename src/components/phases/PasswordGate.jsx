@@ -187,6 +187,7 @@ const ROSE_POSITIONS = [
 ]
 
 function FaceIDScanner({ onComplete, cameraStream }) {
+  const { state } = useAppState()
   const videoRef = useRef(null)
   const [scanProgress, setScanProgress] = useState(0)
   const [scanLine, setScanLine] = useState(0)
@@ -215,7 +216,7 @@ function FaceIDScanner({ onComplete, cameraStream }) {
   useEffect(() => {
     if (!modelsLoaded) return
 
-    const stored = localStorage.getItem('hazar_face_descriptors')
+    const stored = state.faceDescriptors || localStorage.getItem('hazar_face_descriptors')
     if (!stored) {
       // No reference photos enrolled → auto-pass after romantic delay
       setRecognitionState('no_reference')
@@ -268,7 +269,7 @@ function FaceIDScanner({ onComplete, cameraStream }) {
     }, 900)
 
     return () => clearInterval(recogInterval)
-  }, [modelsLoaded, recognizeFrame, onComplete])
+  }, [modelsLoaded, recognizeFrame, onComplete, state.faceDescriptors])
 
   return (
     <motion.div

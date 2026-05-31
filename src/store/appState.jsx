@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
 import { subscribePhotos } from '../lib/photoService.js'
+import { subscribeAuth } from '../lib/contentService.js'
 import { isFirebaseConfigured } from '../lib/firebase.js'
 
 export const PHASES = {
@@ -74,8 +75,7 @@ function reducer(state, action) {
       return { ...state, phase: PHASES.PREMIUM_GATE }
 
     case 'ATTEMPT_AUTH': {
-      const customPw = localStorage.getItem('hazar_custom_password')
-      const validPw = customPw || MAIN_PASSWORD
+      const validPw = state.customPassword || localStorage.getItem('hazar_custom_password') || MAIN_PASSWORD
       if (action.payload === validPw) {
         if (navigator.vibrate) navigator.vibrate([50, 30, 50, 30, 100])
         return { ...state, isAuthenticated: true, phase: PHASES.MEMORY_UNIVERSE }
@@ -118,6 +118,13 @@ function reducer(state, action) {
 
     case 'SYNC_PHOTOS':
       return { ...state, photos: action.payload }
+
+    case 'SYNC_AUTH':
+      return { 
+        ...state, 
+        customPassword: action.payload.customPassword || state.customPassword,
+        faceDescriptors: action.payload.faceDescriptors || state.faceDescriptors
+      }
 
     case 'DELETE_PHOTO': {
       const newPhotos = state.photos.filter(p => p.id !== action.payload)
@@ -171,16 +178,27 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!isFirebaseConfigured) return
-    let unsubscribe
+    let unsubscribePhotos
+    let unsubscribeAuth
+    
     // Small delay to ensure Firebase fully initializes before subscribing
     const timeout = setTimeout(() => {
-      unsubscribe = subscribePhotos(photos => {
+      unsubscribePhotos = subscribePhotos(photos => {
         dispatch({ type: 'SYNC_PHOTOS', payload: photos })
       })
+      unsubscribeAuth = subscribeAuth(authData => {
+        if (authData.customPassword) localStorage.setItem('hazar_custom_password', authData.customPassword)
+        if (authData.faceDescriptors) localStorage.setItem('hazar_face_descriptors', JSON.stringify(authData.faceDescriptors))
+        else if (authData.faceDescriptors === null) localStorage.removeItem('hazar_face_descriptors')
+        
+        dispatch({ type: 'SYNC_AUTH', payload: authData })
+      })
     }, 100)
+    
     return () => {
       clearTimeout(timeout)
-      if (unsubscribe) unsubscribe()
+      if (unsubscribePhotos) unsubscribePhotos()
+      if (unsubscribeAuth) unsubscribeAuth()
     }
   }, [])
 
