@@ -7,10 +7,16 @@ import { fetchLoveMessages, fetchCoverTitle } from '../../lib/contentService.js'
 
 const LS_TITLE_KEY    = 'hazar_cover_title'
 const LS_MESSAGES_KEY = 'hazar_love_messages'
-const TRACKS = [
-  { src: '/audio/hastalikta.mp3', title: 'Hastalıkta Sağlıkta' },
-  { src: '/audio/hele-bi-gel.mp3', title: 'Hele Bi Gel' },
-  { src: '/audio/tencere-kapak.mp3', title: 'Tencere Kapak' },
+const BASE_TRACKS = [
+  { src: '/audio/music1.mp3', title: 'Seninle' },
+  { src: '/audio/music2.mp3', title: 'Her Zaman' },
+  { src: '/audio/music3.mp3', title: 'Sonsuzluk' },
+]
+
+const SPOTIFY_TRACKS = [
+  { src: '/audio/ask.mp3', icon: '❤️' },
+  { src: '/audio/ask2.mp3', icon: '💙' },
+  { src: '/audio/daglarda.mp3', icon: '💜' },
 ]
 const DEFAULT_MSGS = [
   { id: 'm1', text: 'Seninle her an güzel', sub: 'her zaman, her yerde' },
@@ -260,6 +266,49 @@ function LoveSlide({msgs,idx,visible}){
   )
 }
 
+
+// ─── Music bar ────────────────────────────────────────────────────────────────
+function MusicBar({playing,track,onToggle,onNext}){
+  return(
+    <div style={{
+      position:'fixed',bottom:0,left:0,right:0,zIndex:50,
+      paddingBottom:'env(safe-area-inset-bottom,0px)',
+      background:'rgba(6,5,14,.97)',borderTop:'1px solid rgba(255,255,255,.05)',
+      backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',
+    }}>
+      <div style={{display:'flex'}}>
+        {BASE_TRACKS.map((t,i)=>(
+          <button key={i} onClick={()=>onNext(i)} style={{
+            flex:1,display:'flex',alignItems:'center',justifyContent:'center',
+            paddingTop:7,paddingBottom:5,background:'none',cursor:'pointer',
+            borderBottom:i===track?'2px solid rgba(212,160,122,.72)':'2px solid transparent',
+          }}>
+            <span style={{fontSize:11,fontWeight:500,whiteSpace:'nowrap',color:i===track?'rgba(255,255,255,.8)':'rgba(255,255,255,.22)'}}>{t.title}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:22,paddingTop:7,paddingBottom:10}}>
+        <Music2 size={12} style={{color:playing?'rgba(212,160,122,.6)':'rgba(255,255,255,.14)'}}/>
+        <motion.button onClick={onToggle} whileTap={{scale:.84}} style={{
+          width:34,height:34,borderRadius:11,display:'flex',alignItems:'center',justifyContent:'center',
+          background:playing?'linear-gradient(135deg,rgba(212,160,122,.2),rgba(200,160,245,.14))':'rgba(255,255,255,.06)',
+          border:playing?'1px solid rgba(212,160,122,.26)':'1px solid rgba(255,255,255,.05)',cursor:'pointer',flexShrink:0,
+        }}>
+          {playing
+            ?<div style={{display:'flex',alignItems:'flex-end',justifyContent:'center',gap:2,width:12,height:12}}>
+               {[0,1,2].map(j=><div key={j} style={{width:2,borderRadius:2,background:'rgba(212,160,122,.9)',animation:`eq .6s ${j*.13}s ease-in-out infinite`}}/>)}
+             </div>
+            :<Play size={11} fill="rgba(255,255,255,.7)" color="rgba(255,255,255,.7)" style={{marginLeft:1}}/>}
+        </motion.button>
+        <motion.button onClick={()=>onNext((track+1)%BASE_TRACKS.length)} whileTap={{scale:.85}}
+          style={{background:'none',border:'none',cursor:'pointer',padding:0}}>
+          <SkipForward size={13} style={{color:'rgba(255,255,255,.26)'}}/>
+        </motion.button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Floating Music Player ──────────────────────────────────────────────────────
 function FloatingMusicPlayer({ playing, track, onToggle, onSelectTrack }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -323,7 +372,7 @@ function FloatingMusicPlayer({ playing, track, onToggle, onSelectTrack }) {
                 style={{ display: 'flex', flexDirection: 'column', minWidth: 130, whiteSpace: 'nowrap' }}
               >
                 <span style={{ color: 'rgba(255,255,255,0.95)', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>Şarkılarımız</span>
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>{TRACKS[track].title}</span>
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>{SPOTIFY_TRACKS[track].icon}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -352,7 +401,7 @@ function FloatingMusicPlayer({ playing, track, onToggle, onSelectTrack }) {
               style={{ overflow: 'hidden' }}
             >
               <div style={{ padding: '0 8px 12px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {TRACKS.map((t, i) => (
+                {SPOTIFY_TRACKS.map((t, i) => (
                   <button
                     key={i}
                     onClick={(e) => { e.stopPropagation(); onSelectTrack(i); }}
@@ -383,7 +432,7 @@ function FloatingMusicPlayer({ playing, track, onToggle, onSelectTrack }) {
                       color: i === track ? '#1DB954' : 'rgba(255,255,255,0.7)',
                       fontSize: 12.5, fontWeight: i === track ? 600 : 400, flex: 1
                     }}>
-                      {t.title}
+                      {t.icon}
                     </span>
                     {i === track && playing && (
                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 12 }}>
@@ -446,12 +495,17 @@ export default function MemoryUniverse(){
   const [row,   setRow]     = useState(0)
   const [loveIdx,setLoveIdx]= useState(0)
   const [hint,  setHint]    = useState(true)
-  const [music, setMusic]   = useState(false)
-  const [ended, setEnded]   = useState(false)
-  const [track, setTrack]   = useState(0)
-  const [snapping,setSnapping]=useState(false)
+  const [baseMusic, setBaseMusic]   = useState(false)
+  const [baseEnded, setBaseEnded]   = useState(false)
+  const [baseTrack, setBaseTrack]   = useState(0)
+  const baseAudioRef   = useRef(null)
 
-  const audioRef   = useRef(null)
+  const [spotifyMusic, setSpotifyMusic] = useState(false)
+  const [spotifyEnded, setSpotifyEnded] = useState(false)
+  const [spotifyTrack, setSpotifyTrack] = useState(0)
+  const spotifyAudioRef = useRef(null)
+  
+  const [snapping,setSnapping]=useState(false)
   const touchedRef = useRef(false)
 
   const totalCols  = 1+photos.length
@@ -509,22 +563,43 @@ export default function MemoryUniverse(){
     }
   },[])
 
-  const toggleMusic=useCallback(()=>{
-    const audio=audioRef.current;if(!audio)return
+  const toggleBaseMusic=useCallback(()=>{
+    const audio=baseAudioRef.current;if(!audio)return
     touchedRef.current=true
-    if(music){audio.pause();setMusic(false)}
+    if(baseMusic){audio.pause();setBaseMusic(false)}
     else{
-      if(ended){audio.currentTime=0;setEnded(false)}
-      audio.play().then(()=>setMusic(true)).catch(()=>{})
+      if(spotifyMusic) { spotifyAudioRef.current?.pause(); setSpotifyMusic(false); }
+      if(baseEnded){audio.currentTime=0;setBaseEnded(false)}
+      audio.play().then(()=>setBaseMusic(true)).catch(()=>{})
     }
-  },[music,ended])
+  },[baseMusic, baseEnded, spotifyMusic])
 
-  const pickTrack=useCallback((i)=>{
-    const audio=audioRef.current;if(!audio)return
-    setTrack(i);setEnded(false)
-    audio.src=TRACKS[i].src;audio.load()
-    audio.play().then(()=>setMusic(true)).catch(()=>{})
-  },[])
+  const pickBaseTrack=useCallback((i)=>{
+    const audio=baseAudioRef.current;if(!audio)return
+    setBaseTrack(i);setBaseEnded(false)
+    if(spotifyMusic) { spotifyAudioRef.current?.pause(); setSpotifyMusic(false); }
+    audio.src=BASE_TRACKS[i].src;audio.load()
+    audio.play().then(()=>setBaseMusic(true)).catch(()=>{})
+  },[spotifyMusic])
+
+  const toggleSpotifyMusic=useCallback(()=>{
+    const audio=spotifyAudioRef.current;if(!audio)return
+    touchedRef.current=true
+    if(spotifyMusic){audio.pause();setSpotifyMusic(false)}
+    else{
+      if(baseMusic) { baseAudioRef.current?.pause(); setBaseMusic(false); }
+      if(spotifyEnded){audio.currentTime=0;setSpotifyEnded(false)}
+      audio.play().then(()=>setSpotifyMusic(true)).catch(()=>{})
+    }
+  },[spotifyMusic, spotifyEnded, baseMusic])
+
+  const pickSpotifyTrack=useCallback((i)=>{
+    const audio=spotifyAudioRef.current;if(!audio)return
+    setSpotifyTrack(i);setSpotifyEnded(false)
+    if(baseMusic) { baseAudioRef.current?.pause(); setBaseMusic(false); }
+    audio.src=SPOTIFY_TRACKS[i].src;audio.load()
+    audio.play().then(()=>setSpotifyMusic(true)).catch(()=>{})
+  },[baseMusic])
 
   // Navigate state (called after drag)
   const navigate=useCallback((dc,dr)=>{
@@ -566,8 +641,10 @@ export default function MemoryUniverse(){
   },[msgsLen])
 
   const logout=useCallback(()=>{
-    const audio=audioRef.current
-    if(audio){audio.pause();audio.currentTime=0}
+    const audio1=baseAudioRef.current
+    const audio2=spotifyAudioRef.current
+    if(audio1){audio1.pause();audio1.currentTime=0}
+    if(audio2){audio2.pause();audio2.currentTime=0}
     dispatch({type:'RESET_TO_INTRO'})
   },[dispatch])
 
@@ -657,7 +734,8 @@ export default function MemoryUniverse(){
       onTouchEnd={onTouchEnd}
     >
       <style>{CSS}</style>
-      <audio ref={audioRef} src={TRACKS[0].src} preload="metadata"/>
+      <audio ref={baseAudioRef} src={BASE_TRACKS[0].src} preload="metadata"/>
+      <audio ref={spotifyAudioRef} src={SPOTIFY_TRACKS[0].src} preload="metadata"/>
 
       {/* ── Horizontal track — all slides in one translateX container ── */}
       <div ref={trackRef} style={{
@@ -725,7 +803,8 @@ export default function MemoryUniverse(){
         )}
       </AnimatePresence>
 
-      <FloatingMusicPlayer playing={music} track={track} onToggle={toggleMusic} onSelectTrack={pickTrack}/>
+      <MusicBar playing={baseMusic} track={baseTrack} onToggle={toggleBaseMusic} onNext={pickBaseTrack}/>
+      <FloatingMusicPlayer playing={spotifyMusic} track={spotifyTrack} onToggle={toggleSpotifyMusic} onSelectTrack={pickSpotifyTrack}/>
       <HeartEmitter/>
     </div>
   )
