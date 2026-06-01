@@ -260,45 +260,144 @@ function LoveSlide({msgs,idx,visible}){
   )
 }
 
-// ─── Music bar ────────────────────────────────────────────────────────────────
-function MusicBar({playing,track,onToggle,onNext}){
-  return(
-    <div style={{
-      position:'fixed',bottom:0,left:0,right:0,zIndex:50,
-      paddingBottom:'env(safe-area-inset-bottom,0px)',
-      background:'rgba(6,5,14,.97)',borderTop:'1px solid rgba(255,255,255,.05)',
-      backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',
-    }}>
-      <div style={{display:'flex'}}>
-        {TRACKS.map((t,i)=>(
-          <button key={i} onClick={()=>onNext(i)} style={{
-            flex:1,display:'flex',alignItems:'center',justifyContent:'center',
-            paddingTop:7,paddingBottom:5,background:'none',cursor:'pointer',
-            borderBottom:i===track?'2px solid rgba(212,160,122,.72)':'2px solid transparent',
-          }}>
-            <span style={{fontSize:11,fontWeight:500,whiteSpace:'nowrap',color:i===track?'rgba(255,255,255,.8)':'rgba(255,255,255,.22)'}}>{t.title}</span>
-          </button>
-        ))}
-      </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:22,paddingTop:7,paddingBottom:10}}>
-        <Music2 size={12} style={{color:playing?'rgba(212,160,122,.6)':'rgba(255,255,255,.14)'}}/>
-        <motion.button onClick={onToggle} whileTap={{scale:.84}} style={{
-          width:34,height:34,borderRadius:11,display:'flex',alignItems:'center',justifyContent:'center',
-          background:playing?'linear-gradient(135deg,rgba(212,160,122,.2),rgba(200,160,245,.14))':'rgba(255,255,255,.06)',
-          border:playing?'1px solid rgba(212,160,122,.26)':'1px solid rgba(255,255,255,.05)',cursor:'pointer',flexShrink:0,
-        }}>
-          {playing
-            ?<div style={{display:'flex',alignItems:'flex-end',justifyContent:'center',gap:2,width:12,height:12}}>
-               {[0,1,2].map(j=><div key={j} style={{width:2,borderRadius:2,background:'rgba(212,160,122,.9)',animation:`eq .6s ${j*.13}s ease-in-out infinite`}}/>)}
-             </div>
-            :<Play size={11} fill="rgba(255,255,255,.7)" color="rgba(255,255,255,.7)" style={{marginLeft:1}}/>}
-        </motion.button>
-        <motion.button onClick={()=>onNext((track+1)%TRACKS.length)} whileTap={{scale:.85}}
-          style={{background:'none',border:'none',cursor:'pointer',padding:0}}>
-          <SkipForward size={13} style={{color:'rgba(255,255,255,.26)'}}/>
-        </motion.button>
-      </div>
-    </div>
+// ─── Floating Music Player ──────────────────────────────────────────────────────
+function FloatingMusicPlayer({ playing, track, onToggle, onSelectTrack }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const constraintsRef = useRef(null)
+
+  const SpotifyIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="#1DB954">
+      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.84.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.84.241 1.2zM20.04 9.42C15.96 7 9.24 6.84 5.4 7.92c-.6.18-1.2-.18-1.38-.72-.18-.6.18-1.2.72-1.38 4.26-1.2 11.52-1.02 16.14 1.38.54.3.72.96.42 1.5-.24.6-.9.78-1.26.72z" />
+    </svg>
+  )
+
+  return (
+    <>
+      <div ref={constraintsRef} style={{ position: 'fixed', inset: 15, zIndex: 100, pointerEvents: 'none' }} />
+      <motion.div
+        drag
+        dragConstraints={constraintsRef}
+        dragElastic={0.05}
+        dragMomentum={false}
+        initial={{ y: 0 }}
+        animate={{ y: isOpen ? 0 : [0, -7, 0] }}
+        transition={{ y: isOpen ? { duration: 0.2 } : { repeat: Infinity, duration: 3.5, ease: "easeInOut" } }}
+        style={{
+          position: 'fixed',
+          top: 75,
+          right: 20,
+          zIndex: 101,
+          background: 'rgba(15, 14, 20, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderRadius: 24,
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+          display: 'flex',
+          flexDirection: 'column',
+          touchAction: 'none',
+          overflow: 'hidden',
+          willChange: 'transform'
+        }}
+      >
+        <div
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '12px 14px',
+            cursor: 'grab',
+          }}
+        >
+          <div style={{ flexShrink: 0 }}>
+            <SpotifyIcon />
+          </div>
+          
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                style={{ display: 'flex', flexDirection: 'column', minWidth: 130, whiteSpace: 'nowrap' }}
+              >
+                <span style={{ color: 'rgba(255,255,255,0.95)', fontSize: 13, fontWeight: 600, letterSpacing: 0.5 }}>Şarkılarımız</span>
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>{TRACKS[track].title}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={(e) => { e.stopPropagation(); onToggle(); }}
+                style={{ padding: 4, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                {playing ? <Music2 size={16} color="#1DB954" /> : <Play size={16} color="rgba(255,255,255,0.7)" fill="currentColor" />}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div style={{ padding: '0 8px 12px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {TRACKS.map((t, i) => (
+                  <button
+                    key={i}
+                    onClick={(e) => { e.stopPropagation(); onSelectTrack(i); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      width: '100%',
+                      padding: '10px 12px',
+                      background: i === track ? 'rgba(29, 185, 84, 0.12)' : 'transparent',
+                      border: 'none',
+                      borderRadius: 14,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    <div style={{
+                      width: 22, height: 22, borderRadius: '50%',
+                      background: i === track ? '#1DB954' : 'rgba(255,255,255,0.08)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: i === track ? '#000' : 'rgba(255,255,255,0.5)',
+                      fontSize: 11, fontWeight: 'bold', flexShrink: 0
+                    }}>
+                      {i + 1}
+                    </div>
+                    <span style={{
+                      color: i === track ? '#1DB954' : 'rgba(255,255,255,0.7)',
+                      fontSize: 12.5, fontWeight: i === track ? 600 : 400, flex: 1
+                    }}>
+                      {t.title}
+                    </span>
+                    {i === track && playing && (
+                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 12 }}>
+                         {[0,1,2].map(j=><div key={j} style={{width: 2, borderRadius: 2, background: '#1DB954', animation: `eq .6s ${j*.15}s ease-in-out infinite`}}/>)}
+                       </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </>
   )
 }
 
@@ -424,8 +523,8 @@ export default function MemoryUniverse(){
     const audio=audioRef.current;if(!audio)return
     setTrack(i);setEnded(false)
     audio.src=TRACKS[i].src;audio.load()
-    if(music)audio.play().catch(()=>{})
-  },[music])
+    audio.play().then(()=>setMusic(true)).catch(()=>{})
+  },[])
 
   // Navigate state (called after drag)
   const navigate=useCallback((dc,dr)=>{
@@ -626,7 +725,7 @@ export default function MemoryUniverse(){
         )}
       </AnimatePresence>
 
-      <MusicBar playing={music} track={track} onToggle={toggleMusic} onNext={pickTrack}/>
+      <FloatingMusicPlayer playing={music} track={track} onToggle={toggleMusic} onSelectTrack={pickTrack}/>
       <HeartEmitter/>
     </div>
   )
