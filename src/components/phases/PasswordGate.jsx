@@ -431,7 +431,9 @@ export default function PasswordGate({ cameraStream = null }) {
 
   const handleSubmit = useCallback((e) => {
     e?.preventDefault()
-    if (password === 'hazar') {
+    // Local check only runs if there is NO custom password synced from Firebase/LocalStorage yet
+    // The actual state authentication relies on ATTEMPT_AUTH matching `validPw` logic.
+    if (password === '01062004' || password === (state.customPassword || localStorage.getItem('hazar_custom_password'))) {
       setHeartBurst(true)
       if (navigator.vibrate) navigator.vibrate([50, 30, 50, 30, 100])
       setTimeout(() => {
@@ -442,7 +444,7 @@ export default function PasswordGate({ cameraStream = null }) {
       if (navigator.vibrate) navigator.vibrate([200])
       setTimeout(() => setError(false), 800)
     }
-  }, [password, dispatch])
+  }, [password, dispatch, state.customPassword])
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">

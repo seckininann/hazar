@@ -10,7 +10,7 @@ export const PHASES = {
   CREATIVE_STUDIO: 'CREATIVE_STUDIO',
 }
 
-const MAIN_PASSWORD = 'hazar'
+const MAIN_PASSWORD = '01062004'
 const ADMIN_PASSWORD = 'kral2024'
 const MAX_ADMIN_ATTEMPTS = 3
 const LS_KEY_PHASE = 'hazar_app_phase'

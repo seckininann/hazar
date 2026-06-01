@@ -319,7 +319,7 @@ function AdminSettings() {
     flash('Şifre güncellendi')
   }
   const resetPw = async () => {
-    await saveCustomPassword('hazar')
+    await saveCustomPassword('01062004')
     localStorage.removeItem('hazar_custom_password')
     flash('Varsayılan şifreye döndü')
   }
