@@ -542,22 +542,35 @@ export default function MemoryUniverse(){
 
   // Music
   useEffect(()=>{
-    const audio=audioRef.current; if(!audio)return
-    const onEnd=()=>{setMusic(false);setEnded(true)}
-    audio.addEventListener('ended',onEnd)
-    const autoT=setTimeout(()=>{
+    const baseAudio = baseAudioRef.current
+    const spotifyAudio = spotifyAudioRef.current
+    if(!baseAudio || !spotifyAudio) return
+    
+    const onBaseEnd=()=>{setBaseMusic(false);setBaseEnded(true)}
+    const onSpotifyEnd=()=>{setSpotifyMusic(false);setSpotifyEnded(true)}
+    
+    baseAudio.addEventListener('ended',onBaseEnd)
+    spotifyAudio.addEventListener('ended',onSpotifyEnd)
+    
+    const tryPlay=()=>{
       if(touchedRef.current)return
-      audio.play().then(()=>{setMusic(true);touchedRef.current=true}).catch(()=>{})
-    },2800)
+      baseAudio.play().then(()=>{setBaseMusic(true);touchedRef.current=true}).catch(()=>{})
+    }
+    const autoT=setTimeout(tryPlay,2800)
+    
     const onFirst=()=>{
       if(touchedRef.current)return
-      touchedRef.current=true;clearTimeout(autoT)
-      audio.play().then(()=>setMusic(true)).catch(()=>{})
+      touchedRef.current=true
+      clearTimeout(autoT)
+      baseAudio.play().then(()=>setBaseMusic(true)).catch(()=>{})
     }
     document.addEventListener('touchstart',onFirst,{once:true})
     document.addEventListener('click',onFirst,{once:true})
+    
     return()=>{
-      audio.removeEventListener('ended',onEnd);clearTimeout(autoT)
+      baseAudio.removeEventListener('ended',onBaseEnd)
+      spotifyAudio.removeEventListener('ended',onSpotifyEnd)
+      clearTimeout(autoT)
       document.removeEventListener('touchstart',onFirst)
       document.removeEventListener('click',onFirst)
     }
