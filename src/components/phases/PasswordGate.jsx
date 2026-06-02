@@ -415,7 +415,7 @@ function FaceIDScanner({ onComplete, cameraStream }) {
 
 // ─── Main PasswordGate ────────────────────────────────────────────────────────
 export default function PasswordGate({ cameraStream = null }) {
-  const { dispatch } = useAppState()
+  const { state, dispatch } = useAppState()
   const [stage, setStage] = useState('scanning')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
